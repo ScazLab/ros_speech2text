@@ -174,6 +174,7 @@ def listen_print_loop(recognize_stream):
     print("entered print loop")
     num_chars_printed = 0
     for resp in recognize_stream:
+        #print(type(resp))
         if resp.error.code != code_pb2.OK:
             raise RuntimeError('Server error: ' + resp.error.message)
 
