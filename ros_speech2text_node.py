@@ -164,7 +164,7 @@ def request_stream(data_stream, rate, interim_results=True):
         yield cloud_speech.StreamingRecognizeRequest(audio_content=data)
 
 
-def listen_print_loop(recognize_stream):
+def listen_print_loop(recognize_stream, publisher):
     """Iterates through server responses and prints them.
     The recognize_stream passed is a generator that will block until a response
     is provided by the server. When the transcription response comes, print it.
@@ -199,6 +199,8 @@ def listen_print_loop(recognize_stream):
 
         else:
             print(transcript)
+            rospy.loginfo(transcript)
+            publisher.publish(transcript)
 
             # Exit recognition if any of the transcribed phrases could be
             # one of our keywords.
@@ -208,13 +210,27 @@ def listen_print_loop(recognize_stream):
 
             num_chars_printed = 0
 
+def dump_output(recognize_stream):
+    print("start dumping output")
+    for resp in recognize_stream:
+        if not resp.results:
+            continue
+        print(resp.results[0])
+
 
 def main():
+    # Code for creating a ROS node
+    pub = rospy.Publisher('chatter', String, queue_size=10)
+    rospy.init_node('talker', anonymous=True)
+
     with cloud_speech.beta_create_Speech_stub(
             make_channel('speech.googleapis.com', 443)) as service:
         # For streaming audio from the microphone, there are three threads.
         # First, a thread that collects audio data as it comes in
+        # print("entered make_channel")
         with record_audio(RATE, CHUNK) as buffered_audio_data:
+            # print("entered record_audio")
+
             # Second, a thread that sends requests with that data
             requests = request_stream(buffered_audio_data, RATE)
             # Third, a thread that listens for transcription responses
@@ -226,8 +242,8 @@ def main():
 
             # Now, put the transcription responses to use.
             try:
-                listen_print_loop(recognize_stream)
-
+                #listen_print_loop(recognize_stream,pub)
+                dump_output(recognize_stream)
                 recognize_stream.cancel()
             except face.CancellationError:
                 # This happens because of the interrupt handler

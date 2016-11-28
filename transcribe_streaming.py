@@ -171,6 +171,7 @@ def listen_print_loop(recognize_stream):
     the next result to overwrite it, until the response is a final one. For the
     final one, print a newline to preserve the finalized transcription.
     """
+    print("entered print loop")
     num_chars_printed = 0
     for resp in recognize_stream:
         if resp.error.code != code_pb2.OK:
@@ -206,13 +207,14 @@ def listen_print_loop(recognize_stream):
 
             num_chars_printed = 0
 
-
 def main():
     with cloud_speech.beta_create_Speech_stub(
             make_channel('speech.googleapis.com', 443)) as service:
         # For streaming audio from the microphone, there are three threads.
         # First, a thread that collects audio data as it comes in
+        print("entered make_channel")
         with record_audio(RATE, CHUNK) as buffered_audio_data:
+            print("entered record_audio")
             # Second, a thread that sends requests with that data
             requests = request_stream(buffered_audio_data, RATE)
             # Third, a thread that listens for transcription responses
@@ -225,7 +227,6 @@ def main():
             # Now, put the transcription responses to use.
             try:
                 listen_print_loop(recognize_stream)
-
                 recognize_stream.cancel()
             except face.CancellationError:
                 # This happens because of the interrupt handler
