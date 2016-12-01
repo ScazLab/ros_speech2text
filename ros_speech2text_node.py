@@ -41,7 +41,7 @@ CHUNK = int(RATE / 10)  # 100ms
 # out the transcription.
 # * https://g.co/cloud/speech/limits#content
 # DEADLINE_SECS = 60 * 3 + 5
-
+DEADLINE_SECS = 10 * 3 + 5
 SPEECH_SCOPE = 'https://www.googleapis.com/auth/cloud-platform'
 
 
