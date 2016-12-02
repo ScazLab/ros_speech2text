@@ -40,8 +40,8 @@ CHUNK = int(RATE / 10)  # 100ms
 # connection alive for that long, plus some more to give the API time to figure
 # out the transcription.
 # * https://g.co/cloud/speech/limits#content
-# DEADLINE_SECS = 60 * 3 + 5
-DEADLINE_SECS = 10 * 3 + 5
+DEADLINE_SECS = 60 * 3 + 5
+# DEADLINE_SECS = 10 * 3 + 5
 SPEECH_SCOPE = 'https://www.googleapis.com/auth/cloud-platform'
 
 
@@ -131,7 +131,6 @@ def record_audio(rate, chunk):
     audio_interface.terminate()
 # [END audio_stream]
 
-
 def request_stream(data_stream, rate, interim_results=True):
     """Yields `StreamingRecognizeRequest`s constructed from a recording audio
     stream.
@@ -151,6 +150,7 @@ def request_stream(data_stream, rate, interim_results=True):
         # See http://g.co/cloud/speech/docs/languages
         # for a list of supported languages.
         language_code='en-US',  # a BCP-47 language tag
+        #speech_context=context,
     )
     streaming_config = cloud_speech.StreamingRecognitionConfig(
         interim_results=interim_results,
@@ -162,6 +162,7 @@ def request_stream(data_stream, rate, interim_results=True):
 
     for data in data_stream:
         # Subsequent requests can all just have the content
+        # print("Request Sent")
         yield cloud_speech.StreamingRecognizeRequest(audio_content=data)
 
 def dump_output(recognize_stream,publisher):
@@ -180,11 +181,22 @@ def dump_output(recognize_stream,publisher):
             rospy.loginfo(transcript)
             publisher.publish(transcript)
 
+def add_context(data):
+    print data.data
+
+def create_new_service():
+    channel = make_channel('speech.googleapis.com', 443)
+    service = cloud_speech.beta_create_Speech_stub(channel)
+    return service
+
 
 def main():
     # Code for creating a ROS node
-    pub = rospy.Publisher('text_input', String, queue_size=10)
+    pub = rospy.Publisher('user_input', String, queue_size=10)
     rospy.init_node('speech2text_engine', anonymous=True)
+    sub = rospy.Subscriber('context_input', String, add_context)
+
+
 
     with cloud_speech.beta_create_Speech_stub(
             make_channel('speech.googleapis.com', 443)) as service:
@@ -195,6 +207,8 @@ def main():
             # print("entered record_audio")
 
             # Second, a thread that sends requests with that data
+            # requests is a generator
+            # when we have a new_context, we should make a new generator
             requests = request_stream(buffered_audio_data, RATE)
             # Third, a thread that listens for transcription responses
             recognize_stream = service.StreamingRecognize(
