@@ -31,6 +31,7 @@ from grpc.beta import implementations
 from grpc.framework.interfaces.face import face
 import pyaudio
 from six.moves import queue
+from time import time
 
 # Audio recording parameters
 RATE = 16000
@@ -165,9 +166,15 @@ def request_stream(data_stream, rate, interim_results=True):
         # print("Request Sent")
         yield cloud_speech.StreamingRecognizeRequest(audio_content=data)
 
+
 def dump_output(recognize_stream,publisher):
     print("start dumping output")
+    t1 = time()
     for resp in recognize_stream:
+        # check time out here
+        if (time() - t1) > 55:
+            print('Exiting..')
+            break
         if resp.error.code != code_pb2.OK:
             raise RuntimeError('Server error: ' + resp.error.message)
         if not resp.results:
@@ -181,6 +188,8 @@ def dump_output(recognize_stream,publisher):
             rospy.loginfo(transcript)
             publisher.publish(transcript)
 
+        #should terminate after sixty seconds
+
 def add_context(data):
     print data.data
 
@@ -190,14 +199,7 @@ def create_new_service():
     return service
 
 
-def main():
-    # Code for creating a ROS node
-    pub = rospy.Publisher('user_input', String, queue_size=10)
-    rospy.init_node('speech2text_engine', anonymous=True)
-    sub = rospy.Subscriber('context_input', String, add_context)
-
-
-
+def recognize(pub):
     with cloud_speech.beta_create_Speech_stub(
             make_channel('speech.googleapis.com', 443)) as service:
         # For streaming audio from the microphone, there are three threads.
@@ -215,7 +217,7 @@ def main():
                 requests, DEADLINE_SECS)
 
             # Exit things cleanly on interrupt
-            signal.signal(signal.SIGINT, lambda *_: recognize_stream.cancel())
+            # signal.signal(signal.SIGINT, lambda *_: recognize_stream.cancel())
 
             # Now, put the transcription responses to use.
             try:
@@ -225,6 +227,29 @@ def main():
             except face.CancellationError:
                 # This happens because of the interrupt handler
                 pass
+            print("end of session")
+
+run_flag = True
+
+def sig_hand(signum, frame):
+    global run_flag
+    run_flag = False
+    print("Stopping Recognition")
+
+def main():
+    # Code for creating a ROS node
+
+    pub = rospy.Publisher('user_input', String, queue_size=10)
+    rospy.init_node('speech2text_engine', anonymous=True)
+    sub = rospy.Subscriber('context_input', String, add_context)
+
+    signal.signal(signal.SIGINT, sig_hand)
+    while run_flag:
+        recognize(pub)
+
+    #it stays in recognize
+    print("after recognize")
+
 
 
 if __name__ == '__main__':
