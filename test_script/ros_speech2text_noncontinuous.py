@@ -1,14 +1,27 @@
 from sys import byteorder
 from array import array
 from struct import pack
+from std_msgs.msg import String
+from google.cloud import speech
+from time import time
 
 import pyaudio
 import wave
+import io
+import os
+import rospy
+import signal
+import sys
+
+# Audio recording parameters
+RATE = 16000
+CHUNK_SIZE = int(RATE / 10)  # 100ms
 
 THRESHOLD = 700
-CHUNK_SIZE = 1024
+# RATE = 44100
+# CHUNK_SIZE = 1024
 FORMAT = pyaudio.paInt16
-RATE = 44100
+run_flag = True
 
 def is_silent(snd_data):
     "Returns 'True' if below the 'silent' threshold"
@@ -55,17 +68,8 @@ def add_silence(snd_data, seconds):
     r.extend([0 for i in xrange(int(seconds*RATE))])
     return r
 
-def record():
-    """
-    Record a word or words from the microphone and 
-    return the data as an array of signed shorts.
-
-    Normalizes the audio, trims silence from the 
-    start and end, and pads with 0.5 seconds of 
-    blank sound to make sure VLC et al can play 
-    it without getting chopped off.
-    """
-    p = pyaudio.PyAudio()
+def get_next_utter():
+	p = pyaudio.PyAudio()
     stream = p.open(format=FORMAT, channels=1, rate=RATE,
         input=True, output=True,
         frames_per_buffer=CHUNK_SIZE)
@@ -88,6 +92,7 @@ def record():
             num_silent += 1
         elif not silent and not snd_started:
             snd_started = True
+            num_silent = 0
 
         if snd_started and num_silent > 30:
             break
@@ -100,21 +105,38 @@ def record():
     r = normalize(r)
     r = trim(r)
     r = add_silence(r, 0.5)
-    return sample_width, r
+    return r
 
-def record_to_file(path):
-    "Records from the microphone and outputs the resulting data to 'path'"
-    sample_width, data = record()
-    data = pack('<' + ('h'*len(data)), *data)
+def recog(speech_client, data):
+	audio_sample = speech_client.sample(
+            data,
+            source_uri=None,
+            encoding='LINEAR16',
+            sample_rate=RATE)
 
-    wf = wave.open(path, 'wb')
-    wf.setnchannels(1)
-    wf.setsampwidth(sample_width)
-    wf.setframerate(RATE)
-    wf.writeframes(data)
-    wf.close()
+	alternatives = speech_client.speech_api.sync_recognize(audio_sample)
+
+    for alternative in alternatives:
+        print('Transcript: {}'.format(alternative.transcript))
+        return alternative.transcript
+
+def sig_hand(signum, frame):
+    global run_flag
+    run_flag = False
+    print("Stopping Recognition")
+
+def main():
+	pub = rospy.Publisher('user_input', String, queue_size=10)
+    rospy.init_node('speech2text_engine', anonymous=True)
+    sub = rospy.Subscriber('context_input', String, add_context)
+    speech_client = speech.Client()
+    signal.signal(signal.SIGINT, sig_hand)
+
+    while run_flag:
+    	aud_data = get_next_utter()
+    	transcript = recog(speech_client, aud_data)
+    	rospy.loginfo(transcript)
+        pub.publish(transcript)
 
 if __name__ == '__main__':
-    print("please speak a word into the microphone")
-    record_to_file('demo.wav')
-    print("done - result written to demo.wav")
+    main()
