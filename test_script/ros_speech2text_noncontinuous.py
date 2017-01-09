@@ -14,12 +14,12 @@ import signal
 import sys
 
 # Audio recording parameters
-RATE = 16000
-CHUNK_SIZE = int(RATE / 10)  # 100ms
+# RATE = 16000
+# CHUNK_SIZE = int(RATE / 10)  # 100ms
 
 THRESHOLD = 700
-# RATE = 44100
-# CHUNK_SIZE = 1024
+RATE = 44100
+CHUNK_SIZE = 1024
 FORMAT = pyaudio.paInt16
 run_flag = True
 
@@ -69,11 +69,8 @@ def add_silence(snd_data, seconds):
     return r
 
 def get_next_utter():
-	p = pyaudio.PyAudio()
-    stream = p.open(format=FORMAT, channels=1, rate=RATE,
-        input=True, output=True,
-        frames_per_buffer=CHUNK_SIZE)
-
+    p = pyaudio.PyAudio()
+    stream = p.open(format=FORMAT, channels=1, rate=RATE,input=True, output=True, frames_per_buffer=CHUNK_SIZE)
     num_silent = 0
     snd_started = False
 
@@ -91,10 +88,12 @@ def get_next_utter():
         if silent and snd_started:
             num_silent += 1
         elif not silent and not snd_started:
+            print('collecting audio segment')
             snd_started = True
             num_silent = 0
 
         if snd_started and num_silent > 30:
+            print('audio segment completed')
             break
 
     sample_width = p.get_sample_size(FORMAT)
@@ -105,20 +104,34 @@ def get_next_utter():
     r = normalize(r)
     r = trim(r)
     r = add_silence(r, 0.5)
-    return r
+    return sample_width, r
 
-def recog(speech_client, data):
-	audio_sample = speech_client.sample(
-            data,
+def recog(speech_client):
+    with io.open('temp0.wav', 'rb') as audio_file:
+        content = audio_file.read()
+        audio_sample = speech_client.sample(
+            content,
             source_uri=None,
             encoding='LINEAR16',
             sample_rate=RATE)
 
-	alternatives = speech_client.speech_api.sync_recognize(audio_sample)
+    alternatives = speech_client.speech_api.sync_recognize(audio_sample)
 
     for alternative in alternatives:
         print('Transcript: {}'.format(alternative.transcript))
         return alternative.transcript
+
+def record_to_file(sample_width, data, sn):
+    "Records from the microphone and outputs the resulting data to 'path'"
+    data = pack('<' + ('h'*len(data)), *data)
+    file_name = 'temp' + str(sn) + '.wav'
+    wf = wave.open(file_name, 'wb')
+    wf.setnchannels(1)
+    wf.setsampwidth(sample_width)
+    wf.setframerate(RATE)
+    wf.writeframes(data)
+    wf.close()
+    print('file saved')
 
 def sig_hand(signum, frame):
     global run_flag
@@ -126,17 +139,20 @@ def sig_hand(signum, frame):
     print("Stopping Recognition")
 
 def main():
-	pub = rospy.Publisher('user_input', String, queue_size=10)
-    rospy.init_node('speech2text_engine', anonymous=True)
-    sub = rospy.Subscriber('context_input', String, add_context)
+    # pub = rospy.Publisher('user_input', String, queue_size=10)
+    # rospy.init_node('speech2text_engine', anonymous=True)
+    # sub = rospy.Subscriber('context_input', String, add_context)
     speech_client = speech.Client()
     signal.signal(signal.SIGINT, sig_hand)
+    sn = 0
 
     while run_flag:
-    	aud_data = get_next_utter()
-    	transcript = recog(speech_client, aud_data)
-    	rospy.loginfo(transcript)
-        pub.publish(transcript)
+        sample_width, aud_data = get_next_utter()
+        record_to_file(sample_width,aud_data, sn)
+        sn += 1
+        transcript = recog(speech_client)
+        # rospy.loginfo(transcript)
+        # pub.publish(transcript)
 
 if __name__ == '__main__':
     main()
