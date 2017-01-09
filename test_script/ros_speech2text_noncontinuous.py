@@ -106,8 +106,10 @@ def get_next_utter():
     r = add_silence(r, 0.5)
     return sample_width, r
 
-def recog(speech_client):
-    with io.open('temp0.wav', 'rb') as audio_file:
+def recog(speech_client, sn):
+    file_name = 'sentence' + str(sn) + '.wav'
+    file_path = os.path.join(os.path.dirname(__file__),'speech_history',file_name)
+    with io.open(file_path, 'rb') as audio_file:
         content = audio_file.read()
         audio_sample = speech_client.sample(
             content,
@@ -115,17 +117,20 @@ def recog(speech_client):
             encoding='LINEAR16',
             sample_rate=RATE)
 
-    alternatives = speech_client.speech_api.sync_recognize(audio_sample)
-
-    for alternative in alternatives:
-        print('Transcript: {}'.format(alternative.transcript))
-        return alternative.transcript
+    try:
+        alternatives = speech_client.speech_api.sync_recognize(audio_sample)
+        for alternative in alternatives:
+            print('Transcript: {}'.format(alternative.transcript))
+            return alternative.transcript
+    except ValueError:
+        print('No good result returned')
 
 def record_to_file(sample_width, data, sn):
     "Records from the microphone and outputs the resulting data to 'path'"
     data = pack('<' + ('h'*len(data)), *data)
-    file_name = 'temp' + str(sn) + '.wav'
-    wf = wave.open(file_name, 'wb')
+    file_name = 'sentence' + str(sn) + '.wav'
+    file_path = os.path.join(os.path.dirname(__file__),'speech_history',file_name)
+    wf = wave.open(file_path, 'wb')
     wf.setnchannels(1)
     wf.setsampwidth(sample_width)
     wf.setframerate(RATE)
@@ -149,8 +154,9 @@ def main():
     while run_flag:
         sample_width, aud_data = get_next_utter()
         record_to_file(sample_width,aud_data, sn)
+        
+        transcript = recog(speech_client, sn)
         sn += 1
-        transcript = recog(speech_client)
         # rospy.loginfo(transcript)
         # pub.publish(transcript)
 
