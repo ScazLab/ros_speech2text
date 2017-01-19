@@ -14,12 +14,13 @@ import signal
 import sys
 
 # Audio recording parameters
-# RATE = 16000
-# CHUNK_SIZE = int(RATE / 10)  # 100ms
+RATE = 16000
+CHUNK_SIZE = int(RATE / 10)  # 100ms
 
 THRESHOLD = 700
-RATE = 44100
-CHUNK_SIZE = 1024
+# RATE = 44100
+# RATE = 48000
+# CHUNK_SIZE = 1024
 FORMAT = pyaudio.paInt16
 run_flag = True
 
@@ -92,7 +93,7 @@ def get_next_utter():
             snd_started = True
             num_silent = 0
 
-        if snd_started and num_silent > 30:
+        if snd_started and num_silent > 10:
             print('audio segment completed')
             break
 
@@ -124,6 +125,7 @@ def recog(speech_client, sn):
             return alternative.transcript
     except ValueError:
         print('No good result returned')
+        return None
 
 def record_to_file(sample_width, data, sn):
     "Records from the microphone and outputs the resulting data to 'path'"
@@ -144,8 +146,8 @@ def sig_hand(signum, frame):
     print("Stopping Recognition")
 
 def main():
-    # pub = rospy.Publisher('user_input', String, queue_size=10)
-    # rospy.init_node('speech2text_engine', anonymous=True)
+    pub = rospy.Publisher('user_input', String, queue_size=10)
+    rospy.init_node('speech2text_engine', anonymous=True)
     # sub = rospy.Subscriber('context_input', String, add_context)
     speech_client = speech.Client()
     signal.signal(signal.SIGINT, sig_hand)
@@ -157,8 +159,9 @@ def main():
         
         transcript = recog(speech_client, sn)
         sn += 1
-        # rospy.loginfo(transcript)
-        # pub.publish(transcript)
+        if transcript:
+            rospy.loginfo(transcript)
+            pub.publish(transcript)
 
 if __name__ == '__main__':
     main()
