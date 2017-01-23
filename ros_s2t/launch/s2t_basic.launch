@@ -6,3 +6,5 @@
 	<node name="s2t_node" pkg="ros_s2t" type="s2t_node" />
 
 </launch>
+
+<!-- ADD API CRED LOCATION>
