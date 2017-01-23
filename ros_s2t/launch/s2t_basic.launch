@@ -1,10 +1,12 @@
 <launch>
-	<param name="/speech2text/audio_rate" value="16000" />
-	<rosparam command="load" param="/speech2text/speech_context">
-		[""]
-	</rosparam>
-	<node name="s2t_node" pkg="ros_s2t" type="s2t_node" />
+    <param name="/speech2text/audio_rate" value="16000" />
+
+    <rosparam param="/speech2text/speech_context">
+        [""]
+    </rosparam>
+
+    <node pkg="ros_s2t" name="s2t_node" type="s2t_node.py" />
 
 </launch>
 
-<!-- ADD API CRED LOCATION>
+<!-- ADD API CRED LOCATION -->

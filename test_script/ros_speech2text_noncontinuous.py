@@ -166,7 +166,7 @@ def main():
     while run_flag:
         sample_width, aud_data = get_next_utter()
         record_to_file(sample_width,aud_data, sn)
-        context = rospy.get_param('/speech2text/speech_context')
+        context = rospy.get_param('/speech2text/speech_context',[])
         transcript = recog(speech_client, sn, context)
         sn += 1
         if transcript:
