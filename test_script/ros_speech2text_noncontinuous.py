@@ -14,8 +14,11 @@ import signal
 import sys
 
 # Audio recording parameters
-RATE = 16000
-CHUNK_SIZE = int(RATE / 10)  # 100ms
+# RATE = 16000
+# CHUNK_SIZE = int(RATE / 10)  # 100ms
+
+RATE = None
+CHUNK_SIZE = None
 
 THRESHOLD = 700
 # RATE = 44100
@@ -146,9 +149,14 @@ def sig_hand(signum, frame):
     print("Stopping Recognition")
 
 def main():
+    global RATE
+    global CHUNK_SIZE
     pub = rospy.Publisher('user_input', String, queue_size=10)
     rospy.init_node('speech2text_engine', anonymous=True)
+    RATE = rospy.get_param('/s2t_audio_rate',16000)
+    CHUNK_SIZE = int(RATE/10)
     # sub = rospy.Subscriber('context_input', String, add_context)
+
     speech_client = speech.Client()
     signal.signal(signal.SIGINT, sig_hand)
     sn = 0
