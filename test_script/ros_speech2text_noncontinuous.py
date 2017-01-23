@@ -154,10 +154,9 @@ def main():
     pub = rospy.Publisher('user_input', String, queue_size=10)
     rospy.init_node('speech2text_engine', anonymous=True)
     # default sample rate 16000
-    RATE = rospy.get_param('/speech2text/audio_rate',16000)
+    RATE = rospy.get_param('/ros_speech2text/audio_rate',16000)
     print RATE
     CHUNK_SIZE = int(RATE/10)
-    # sub = rospy.Subscriber('context_input', String, add_context)
 
     speech_client = speech.Client()
     signal.signal(signal.SIGINT, sig_hand)
@@ -166,7 +165,7 @@ def main():
     while run_flag:
         sample_width, aud_data = get_next_utter()
         record_to_file(sample_width,aud_data, sn)
-        context = rospy.get_param('/speech2text/speech_context')
+        context = rospy.get_param('/ros_speech2text/speech_context')
         transcript = recog(speech_client, sn, context)
         sn += 1
         if transcript:
