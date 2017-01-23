@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from sys import byteorder
 from array import array
 from struct import pack
@@ -165,7 +167,7 @@ def main():
     while run_flag:
         sample_width, aud_data = get_next_utter()
         record_to_file(sample_width,aud_data, sn)
-        
+
         transcript = recog(speech_client, sn)
         sn += 1
         if transcript:
