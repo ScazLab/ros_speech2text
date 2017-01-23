@@ -110,7 +110,7 @@ def get_next_utter():
     r = add_silence(r, 0.5)
     return sample_width, r
 
-def recog(speech_client, sn):
+def recog(speech_client, sn, context):
     file_name = 'sentence' + str(sn) + '.wav'
     file_path = os.path.join(os.path.dirname(__file__),'speech_history',file_name)
     with io.open(file_path, 'rb') as audio_file:
@@ -122,7 +122,7 @@ def recog(speech_client, sn):
             sample_rate=RATE)
 
     try:
-        alternatives = speech_client.speech_api.sync_recognize(audio_sample)
+        alternatives = speech_client.speech_api.sync_recognize(sample = audio_sample, speech_context = context)
         for alternative in alternatives:
             print('Transcript: {}'.format(alternative.transcript))
             return alternative.transcript
@@ -153,7 +153,8 @@ def main():
     global CHUNK_SIZE
     pub = rospy.Publisher('user_input', String, queue_size=10)
     rospy.init_node('speech2text_engine', anonymous=True)
-    RATE = rospy.get_param('/s2t_audio_rate',16000)
+    # default sample rate 16000
+    RATE = rospy.get_param('/speech2text/audio_rate',16000)
     print RATE
     CHUNK_SIZE = int(RATE/10)
     # sub = rospy.Subscriber('context_input', String, add_context)
@@ -165,8 +166,8 @@ def main():
     while run_flag:
         sample_width, aud_data = get_next_utter()
         record_to_file(sample_width,aud_data, sn)
-        
-        transcript = recog(speech_client, sn)
+        context = rospy.get_param('/speech2text/speech_context')
+        transcript = recog(speech_client, sn, context)
         sn += 1
         if transcript:
             rospy.loginfo(transcript)
