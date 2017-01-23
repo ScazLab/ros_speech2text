@@ -1,8 +1,8 @@
 <launch>
-	<param name="/ros_speech2text/audio_rate" value="16000" />
-	<rosparam command="load" param="/ros_speech2text/speech_context">
-		[""]
-	</rosparam>
+    <param name="/ros_speech2text/audio_rate" value="16000" />
+    <rosparam command="load" param="/ros_speech2text/speech_context">
+        [""]
+    </rosparam>
     <node pkg="ros_s2t" name="s2t_node" type="s2t_node.py" />
 
 </launch>
