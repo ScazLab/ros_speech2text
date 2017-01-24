@@ -1,5 +1,3 @@
-!!WARNING: THIS FILE IS NOT UP-TO-DATE WITH DEVELOPMENT. RUN THE PACKAGE INSTEAD!!
-
 #!/usr/bin/env python
 
 from sys import byteorder
@@ -23,7 +21,7 @@ import sys
 
 RATE = None
 CHUNK_SIZE = None
-
+SPEECH_HISTORY_DIR = None
 THRESHOLD = None
 FORMAT = pyaudio.paInt16
 run_flag = True
@@ -113,7 +111,7 @@ def get_next_utter():
 
 def recog(speech_client, sn, context):
     file_name = 'sentence' + str(sn) + '.wav'
-    file_path = os.path.join(os.path.dirname(__file__),'speech_history',file_name)
+    file_path = os.path.join(SPEECH_HISTORY_DIR,file_name)
     with io.open(file_path, 'rb') as audio_file:
         content = audio_file.read()
         audio_sample = speech_client.sample(
@@ -135,7 +133,7 @@ def record_to_file(sample_width, data, sn):
     "Records from the microphone and outputs the resulting data to 'path'"
     data = pack('<' + ('h'*len(data)), *data)
     file_name = 'sentence' + str(sn) + '.wav'
-    file_path = os.path.join(os.path.dirname(__file__),'speech_history',file_name)
+    file_path = os.path.join(SPEECH_HISTORY_DIR,file_name)
     wf = wave.open(file_path, 'wb')
     wf.setnchannels(1)
     wf.setsampwidth(sample_width)
@@ -143,6 +141,13 @@ def record_to_file(sample_width, data, sn):
     wf.writeframes(data)
     wf.close()
     print('file saved')
+
+def expand_dir(SPEECH_HISTORY_DIR):
+    if SPEECH_HISTORY_DIR[0]=='~':
+        SPEECH_HISTORY_DIR = os.getenv("HOME") + SPEECH_HISTORY_DIR[1:]
+    if not os.path.isdir(SPEECH_HISTORY_DIR):
+        os.makedirs(SPEECH_HISTORY_DIR)
+    return SPEECH_HISTORY_DIR
 
 def sig_hand(signum, frame):
     global run_flag
@@ -153,11 +158,15 @@ def main():
     global RATE
     global CHUNK_SIZE
     global THRESHOLD
+    global SPEECH_HISTORY_DIR
     pub = rospy.Publisher('user_input', String, queue_size=10)
     rospy.init_node('speech2text_engine', anonymous=True)
     # default sample rate 16000
     RATE = rospy.get_param('/ros_speech2text/audio_rate',16000)
     THRESHOLD = rospy.get_param('/ros_speech2text/audio_threshold',700)
+    SPEECH_HISTORY_DIR = rospy.get_param('/ros_speech2text/speech_history','~/.ros/ros_speech2text/speech_history')
+    SPEECH_HISTORY_DIR = expand_dir(SPEECH_HISTORY_DIR)
+    print SPEECH_HISTORY_DIR
     CHUNK_SIZE = int(RATE/10)
 
     speech_client = speech.Client()

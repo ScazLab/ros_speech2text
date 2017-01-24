@@ -1,3 +1,5 @@
+!!WARNING: THIS FILE IS NOT UP-TO-DATE WITH DEVELOPMENT. RUN THE PACKAGE INSTEAD!!
+
 #!/usr/bin/env python
 
 from sys import byteorder
