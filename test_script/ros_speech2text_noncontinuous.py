@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from sys import byteorder
 from array import array
 from struct import pack

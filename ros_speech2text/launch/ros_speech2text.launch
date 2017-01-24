@@ -1,13 +1,14 @@
 <launch>
     <param    name ="/ros_speech2text/audio_rate"      value="16000" />
     <param    name ="/ros_speech2text/speech_history"  value="~/.ros/ros_speech2text/speech_history" />
-    <param    name ="/ros_speech2text/api_credentials" value="$(find ros_speech2text)/GCloud_SpeechAPI_Cred" />
+    <!-- param    name ="/ros_speech2text/api_credentials" value="$(find ros_speech2text)/GCloud_SpeechAPI_Cred" /-->
+    <env      name ="GOOGLE_APPLICATION_CREDENTIALS"   value="$(find ros_speech2text)/GCloud_SpeechAPI_Cred" />
+    <param    name ="/ros_speech2text/audio_threshold" value="700"   />
 
     <rosparam param="/ros_speech2text/speech_context">
         [""]
     </rosparam>
+
     <node pkg="ros_speech2text" name="ros_speech2text" type="ros_speech2text.py" />
 
 </launch>
-
-<!-- ADD API CRED LOCATION -->

@@ -1,3 +1,5 @@
+!!WARNING: THIS FILE IS NOT UP-TO-DATE WITH DEVELOPMENT. RUN THE PACKAGE INSTEAD!!
+
 #!/usr/bin/env python
 
 from sys import byteorder
@@ -22,10 +24,7 @@ import sys
 RATE = None
 CHUNK_SIZE = None
 
-THRESHOLD = 1000
-# RATE = 44100
-# RATE = 48000
-# CHUNK_SIZE = 1024
+THRESHOLD = None
 FORMAT = pyaudio.paInt16
 run_flag = True
 
@@ -153,11 +152,12 @@ def sig_hand(signum, frame):
 def main():
     global RATE
     global CHUNK_SIZE
+    global THRESHOLD
     pub = rospy.Publisher('user_input', String, queue_size=10)
     rospy.init_node('speech2text_engine', anonymous=True)
     # default sample rate 16000
     RATE = rospy.get_param('/ros_speech2text/audio_rate',16000)
-    print RATE
+    THRESHOLD = rospy.get_param('/ros_speech2text/audio_threshold',700)
     CHUNK_SIZE = int(RATE/10)
 
     speech_client = speech.Client()
