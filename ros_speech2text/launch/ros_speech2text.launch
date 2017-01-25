@@ -4,6 +4,7 @@
     <!-- param    name ="/ros_speech2text/api_credentials" value="$(find ros_speech2text)/GCloud_SpeechAPI_Cred" /-->
     <env      name ="GOOGLE_APPLICATION_CREDENTIALS"   value="$(find ros_speech2text)/GCloud_SpeechAPI_Cred" />
     <param    name ="/ros_speech2text/audio_threshold" value="10000"   />
+    <param 	  name ="/ros_speech2text/audio_device_idx" value="0"  />
 
     <rosparam param="/ros_speech2text/speech_context">
         [""]

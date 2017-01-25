@@ -177,6 +177,7 @@ def main():
 
     # get input device ID
     p = pyaudio.PyAudio()
+    devices = p.
     if input_idx == None:
         input_idx = p.get_default_input_device_info()['index']
     rospy.loginfo("Using device: " + p.get_device_info_by_index(input_idx)['name'])
