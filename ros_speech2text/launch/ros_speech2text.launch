@@ -3,12 +3,12 @@
     <param    name ="/ros_speech2text/speech_history"  value="~/.ros/ros_speech2text/speech_history" />
     <!-- param    name ="/ros_speech2text/api_credentials" value="$(find ros_speech2text)/GCloud_SpeechAPI_Cred" /-->
     <env      name ="GOOGLE_APPLICATION_CREDENTIALS"   value="$(find ros_speech2text)/GCloud_SpeechAPI_Cred" />
-    <param    name ="/ros_speech2text/audio_threshold" value="700"   />
+    <param    name ="/ros_speech2text/audio_threshold" value="10000"   />
 
     <rosparam param="/ros_speech2text/speech_context">
         [""]
     </rosparam>
 
-    <node pkg="ros_speech2text" name="ros_speech2text" type="ros_speech2text.py" />
+    <node pkg="ros_speech2text" name="ros_speech2text" type="ros_speech2text.py" output="screen" />
 
 </launch>

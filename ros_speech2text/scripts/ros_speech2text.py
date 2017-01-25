@@ -28,6 +28,7 @@ run_flag = True
 
 def is_silent(snd_data):
     "Returns 'True' if below the 'silent' threshold"
+    rospy.loginfo(max(snd_data))
     return max(snd_data) < THRESHOLD
 
 def normalize(snd_data):
@@ -71,9 +72,10 @@ def add_silence(snd_data, seconds):
     r.extend([0 for i in xrange(int(seconds*RATE))])
     return r
 
-def get_next_utter():
+def get_next_utter(input_idx=3):
     p = pyaudio.PyAudio()
-    stream = p.open(format=FORMAT, channels=1, rate=RATE,input=True, output=True, frames_per_buffer=CHUNK_SIZE)
+    rospy.loginfo("Using device: " + p.get_device_info_by_index(input_idx)['name'])
+    stream = p.open(format=FORMAT, channels=1, rate=RATE,input=True, input_device_index=input_idx, output=True, frames_per_buffer=CHUNK_SIZE)
     num_silent = 0
     snd_started = False
 
