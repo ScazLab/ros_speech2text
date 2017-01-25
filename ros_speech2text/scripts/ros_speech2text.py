@@ -80,6 +80,8 @@ def get_next_utter():
     r = array('h')
 
     while 1:
+        if rospy.is_shutdown():
+            return None,None
         # little endian, signed short
         snd_data = array('h', stream.read(CHUNK_SIZE))
         if byteorder == 'big':
@@ -91,12 +93,12 @@ def get_next_utter():
         if silent and snd_started:
             num_silent += 1
         elif not silent and not snd_started:
-            print('collecting audio segment')
+            rospy.loginfo('collecting audio segment')
             snd_started = True
             num_silent = 0
 
         if snd_started and num_silent > 10:
-            print('audio segment completed')
+            rospy.loginfo('audio segment completed')
             break
 
     sample_width = p.get_sample_size(FORMAT)
@@ -123,10 +125,10 @@ def recog(speech_client, sn, context):
     try:
         alternatives = speech_client.speech_api.sync_recognize(sample = audio_sample, speech_context = context)
         for alternative in alternatives:
-            print('Transcript: {}'.format(alternative.transcript))
+            # print('Transcript: {}'.format(alternative.transcript))
             return alternative.transcript
     except ValueError:
-        print('No good result returned')
+        rospy.loginfo('No good result returned')
         return None
 
 def record_to_file(sample_width, data, sn):
@@ -140,7 +142,7 @@ def record_to_file(sample_width, data, sn):
     wf.setframerate(RATE)
     wf.writeframes(data)
     wf.close()
-    print('file saved')
+    rospy.loginfo('file saved')
 
 def expand_dir(SPEECH_HISTORY_DIR):
     if SPEECH_HISTORY_DIR[0]=='~':
@@ -154,6 +156,9 @@ def sig_hand(signum, frame):
     run_flag = False
     print("Stopping Recognition")
 
+# def hook():
+#     print("stopping")
+
 def main():
     global RATE
     global CHUNK_SIZE
@@ -166,15 +171,18 @@ def main():
     THRESHOLD = rospy.get_param('/ros_speech2text/audio_threshold',700)
     SPEECH_HISTORY_DIR = rospy.get_param('/ros_speech2text/speech_history','~/.ros/ros_speech2text/speech_history')
     SPEECH_HISTORY_DIR = expand_dir(SPEECH_HISTORY_DIR)
-    print SPEECH_HISTORY_DIR
     CHUNK_SIZE = int(RATE/10)
 
     speech_client = speech.Client()
-    signal.signal(signal.SIGINT, sig_hand)
+    # signal.signal(signal.SIGINT, sig_hand)
     sn = 0
 
-    while run_flag:
+    while not rospy.is_shutdown():
+    # while run_flag:
         sample_width, aud_data = get_next_utter()
+        if aud_data == None:
+            rospy.loginfo("Node terminating")
+            break
         record_to_file(sample_width,aud_data, sn)
         context = rospy.get_param('/ros_speech2text/speech_context',[])
         transcript = recog(speech_client, sn, context)
