@@ -72,13 +72,10 @@ def add_silence(snd_data, seconds):
     r.extend([0 for i in xrange(int(seconds*RATE))])
     return r
 
-def get_next_utter(input_idx=3):
-    p = pyaudio.PyAudio()
-    rospy.loginfo("Using device: " + p.get_device_info_by_index(input_idx)['name'])
-    stream = p.open(format=FORMAT, channels=1, rate=RATE,input=True, input_device_index=input_idx, output=True, frames_per_buffer=CHUNK_SIZE)
+def get_next_utter(stream):
     num_silent = 0
     snd_started = False
-
+    stream.start_stream()
     r = array('h')
 
     while 1:
@@ -103,15 +100,12 @@ def get_next_utter(input_idx=3):
             rospy.loginfo('audio segment completed')
             break
 
-    sample_width = p.get_sample_size(FORMAT)
     stream.stop_stream()
-    stream.close()
-    p.terminate()
 
     r = normalize(r)
     r = trim(r)
     r = add_silence(r, 0.5)
-    return sample_width, r
+    return r
 
 def recog(speech_client, sn, context):
     file_name = 'sentence' + str(sn) + '.wav'
@@ -166,6 +160,7 @@ def main():
     global CHUNK_SIZE
     global THRESHOLD
     global SPEECH_HISTORY_DIR
+    global FORMAT
     pub = rospy.Publisher('user_input', String, queue_size=10)
     rospy.init_node('speech2text_engine', anonymous=True)
     # default sample rate 16000
@@ -173,15 +168,24 @@ def main():
     THRESHOLD = rospy.get_param('/ros_speech2text/audio_threshold',700)
     SPEECH_HISTORY_DIR = rospy.get_param('/ros_speech2text/speech_history','~/.ros/ros_speech2text/speech_history')
     SPEECH_HISTORY_DIR = expand_dir(SPEECH_HISTORY_DIR)
+    input_idx = rospy.get_param('/ros_speech2text/audio_device_idx',None)
     CHUNK_SIZE = int(RATE/10)
 
     speech_client = speech.Client()
     # signal.signal(signal.SIGINT, sig_hand)
     sn = 0
 
+    # get input device ID
+    p = pyaudio.PyAudio()
+    if input_idx == None:
+        input_idx = p.get_default_input_device_info()['index']
+    rospy.loginfo("Using device: " + p.get_device_info_by_index(input_idx)['name'])
+    stream = p.open(format=FORMAT, channels=1, rate=RATE,input=True, start = False, input_device_index=input_idx, output=False, frames_per_buffer=CHUNK_SIZE)
+    sample_width = p.get_sample_size(FORMAT)
+
     while not rospy.is_shutdown():
     # while run_flag:
-        sample_width, aud_data = get_next_utter()
+        aud_data = get_next_utter(stream)
         if aud_data == None:
             rospy.loginfo("Node terminating")
             break
@@ -192,6 +196,9 @@ def main():
         if transcript:
             rospy.loginfo(transcript)
             pub.publish(transcript)
+
+    stream.close()
+    p.terminate()
 
 if __name__ == '__main__':
     main()
