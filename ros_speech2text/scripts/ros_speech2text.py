@@ -28,7 +28,7 @@ run_flag = True
 
 def is_silent(snd_data):
     "Returns 'True' if below the 'silent' threshold"
-    rospy.loginfo(max(snd_data))
+    rospy.logdebug(max(snd_data))
     return max(snd_data) < THRESHOLD
 
 def normalize(snd_data):
