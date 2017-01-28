@@ -14,6 +14,7 @@ import os
 import rospy
 import signal
 import sys
+import Queue
 
 # Audio recording parameters
 # RATE = 16000
@@ -61,28 +62,13 @@ def trim(start, end, snd_data):
                 r.append(i)
         return r
 
-    if not DYNAMIC_THRESHOLD:
-        # Trim to the left
-        snd_data = _trim(snd_data)
-        # Trim to the right
-        snd_data.reverse()
-        snd_data = _trim(snd_data)
-        snd_data.reverse()
-        return snd_data
-
-    if DYNAMIC_THRESHOLD:
-        r = array('h')
-        snd_started = False
-        for i in snd_data:
-            if i == start and not snd_started:
-                snd_started = True
-                r.append(i)
-            elif i == end and snd_started:
-                snd_started = False
-                r.append(i)
-            elif snd_started:
-                r.append(i)
-        return r
+    # Trim to the left
+    snd_data = _trim(snd_data)
+    # Trim to the right
+    snd_data.reverse()
+    snd_data = _trim(snd_data)
+    snd_data.reverse()
+    return snd_data
 
 def add_silence(snd_data, seconds):
     "Add silence to the start and end of 'snd_data' of length 'seconds' (float)"
@@ -99,14 +85,16 @@ def get_next_utter(stream):
     peak_count = 0
     avg_volume = 0
     frame_count = 0
-    start_frame = None
-    end_frame = None
+    volume_queue = Queue.Queue(10)
+    volume_sum = 0
+    q_size = 0
 
     while 1:
         if rospy.is_shutdown():
             return None
         # little endian, signed short
         snd_data = array('h', stream.read(CHUNK_SIZE))
+        # avg_volume = max(snd_data)
         if byteorder == 'big':
             snd_data.byteswap()
 
@@ -125,10 +113,22 @@ def get_next_utter(stream):
                 break
 
         if DYNAMIC_THRESHOLD:
-            avg_volume = (avg_volume*frame_count + max(snd_data))/(frame_count+1)
+            if volume_queue.full():
+                out = volume_queue.get()
+                volume_sum -= out
+                q_size -= 1
+            if not volume_queue.full() and peak_count==0:
+                volume_queue.put(max(snd_data))
+                volume_sum += max(snd_data)
+                q_size += 1
+            avg_volume = volume_sum/q_size
+
             rospy.loginfo("[AVG_VOLUME] "+ str(avg_volume))
             frame_count += 1
             silent = is_silent_dynamic(avg_volume, snd_data)
+
+            
+
             if silent and snd_started:
                 r.extend(snd_data)
                 num_silent += 1
@@ -159,7 +159,7 @@ def get_next_utter(stream):
 
     r = normalize(r)
     if not DYNAMIC_THRESHOLD:
-        r = trim(start_frame,end_frame,r)
+        r = trim(r)
     r = add_silence(r, 0.5)
     return r
 
