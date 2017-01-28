@@ -31,8 +31,7 @@ DYNAMIC_THRESHOLD_Frame = None
 
 def is_silent(snd_data):
     "Returns 'True' if below the 'silent' threshold"
-    # modify to apply dynamic thresholding
-    rospy.loginfo(max(snd_data))
+    rospy.logdebug(max(snd_data))
     return max(snd_data) < THRESHOLD
 
 def is_silent_dynamic(avg_volume, snd_data):
