@@ -177,6 +177,8 @@ def main():
 
     # get input device ID
     p = pyaudio.PyAudio()
+    device_list = [p.get_device_info_by_index(i)['name'] for i in range(p.get_device_count())]
+    rospy.set_param('/ros_speech2text/available_audio_device',device_list)
 
     if input_idx == None:
         input_idx = p.get_default_input_device_info()['index']
@@ -190,6 +192,8 @@ def main():
         if aud_data == None:
             rospy.loginfo("Node terminating")
             break
+        # if rospy.is_shutdown():
+        #     break
         record_to_file(sample_width,aud_data, sn)
         context = rospy.get_param('/ros_speech2text/speech_context',[])
         transcript = recog(speech_client, sn, context)

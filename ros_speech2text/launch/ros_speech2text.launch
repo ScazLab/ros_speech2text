@@ -7,7 +7,7 @@
     <param 	  name ="/ros_speech2text/audio_device_idx" value="3"  />
 
     <rosparam param="/ros_speech2text/speech_context">
-        [""]
+        ["screwdriver","left","right","yes","no","baxter","screw","table","hammer","board","can","you","tuck","untuck","give","pass","hand","move","help"]
     </rosparam>
 
     <node pkg="ros_speech2text" name="ros_speech2text" type="ros_speech2text.py" output="screen" />
