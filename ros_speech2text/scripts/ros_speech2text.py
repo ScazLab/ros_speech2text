@@ -25,11 +25,19 @@ SPEECH_HISTORY_DIR = None
 THRESHOLD = None
 FORMAT = pyaudio.paInt16
 run_flag = True
+DYNAMIC_THRESHOLD = None
+DYNAMIC_THRESHOLD_Percentage = None
+DYNAMIC_THRESHOLD_Frame = None
 
 def is_silent(snd_data):
     "Returns 'True' if below the 'silent' threshold"
+    # modify to apply dynamic thresholding
     rospy.loginfo(max(snd_data))
     return max(snd_data) < THRESHOLD
+
+def is_silent_dynamic(avg_volume, snd_data):
+    rospy.loginfo(max(snd_data))
+    return max(snd_data) < avg_volume*(1+DYNAMIC_THRESHOLD_Percentage/100.0)
 
 def normalize(snd_data):
     "Average the volume out"
@@ -41,29 +49,41 @@ def normalize(snd_data):
         r.append(int(i*times))
     return r
 
-def trim(snd_data):
+def trim(start, end, snd_data):
     "Trim the blank spots at the start and end"
     def _trim(snd_data):
         snd_started = False
         r = array('h')
-
         for i in snd_data:
             if not snd_started and abs(i)>THRESHOLD:
                 snd_started = True
                 r.append(i)
-
             elif snd_started:
                 r.append(i)
         return r
 
-    # Trim to the left
-    snd_data = _trim(snd_data)
+    if not DYNAMIC_THRESHOLD:
+        # Trim to the left
+        snd_data = _trim(snd_data)
+        # Trim to the right
+        snd_data.reverse()
+        snd_data = _trim(snd_data)
+        snd_data.reverse()
+        return snd_data
 
-    # Trim to the right
-    snd_data.reverse()
-    snd_data = _trim(snd_data)
-    snd_data.reverse()
-    return snd_data
+    if DYNAMIC_THRESHOLD:
+        r = array('h')
+        snd_started = False
+        for i in snd_data:
+            if i == start and not snd_started:
+                snd_started = True
+                r.append(i)
+            elif i == end and snd_started:
+                snd_started = False
+                r.append(i)
+            elif snd_started:
+                r.append(i)
+        return r
 
 def add_silence(snd_data, seconds):
     "Add silence to the start and end of 'snd_data' of length 'seconds' (float)"
@@ -77,6 +97,11 @@ def get_next_utter(stream):
     snd_started = False
     stream.start_stream()
     r = array('h')
+    peak_count = 0
+    avg_volume = 0
+    frame_count = 0
+    start_frame = None
+    end_frame = None
 
     while 1:
         if rospy.is_shutdown():
@@ -87,23 +112,43 @@ def get_next_utter(stream):
             snd_data.byteswap()
         r.extend(snd_data)
 
-        silent = is_silent(snd_data)
+        if not DYNAMIC_THRESHOLD:
+            silent = is_silent(snd_data)
+            if silent and snd_started:
+                num_silent += 1
+            elif not silent and not snd_started:
+                rospy.loginfo('collecting audio segment')
+                snd_started = True
+                num_silent = 0
+            if snd_started and num_silent > 10:
+                rospy.loginfo('audio segment completed')
+                break
 
-        if silent and snd_started:
-            num_silent += 1
-        elif not silent and not snd_started:
-            rospy.loginfo('collecting audio segment')
-            snd_started = True
-            num_silent = 0
-
-        if snd_started and num_silent > 10:
-            rospy.loginfo('audio segment completed')
-            break
+        if DYNAMIC_THRESHOLD:
+            avg_volume = (avg_volume*frame_count + max(snd_data))/(frame_count+1)
+            frame_count += 1
+            silent = is_silent_dynamic(avg_volume, snd_data)
+            if silent and snd_started:
+                num_silent += 1
+            elif silent and not snd_started:
+                peak_count = 0
+            elif not silent and not snd_started:
+                if peak_count>=DYNAMIC_THRESHOLD_Frame:
+                    rospy.loginfo('collecting audio segment')
+                    start_frame = snd_data
+                    snd_started = True
+                    num_silent = 0
+                else:
+                    peak_count += 1
+            if snd_started and num_silent > 10:
+                rospy.loginfo('audio segmend completed')
+                end_frame = snd_data
+                break
 
     stream.stop_stream()
 
     r = normalize(r)
-    r = trim(r)
+    r = trim(start_frame,end_frame,r)
     r = add_silence(r, 0.5)
     return r
 
@@ -161,6 +206,10 @@ def main():
     global THRESHOLD
     global SPEECH_HISTORY_DIR
     global FORMAT
+    global DYNAMIC_THRESHOLD
+    global DYNAMIC_THRESHOLD_Percentage
+    global DYNAMIC_THRESHOLD_Frame
+
     pub = rospy.Publisher('user_input', String, queue_size=10)
     rospy.init_node('speech2text_engine', anonymous=True)
     # default sample rate 16000
@@ -170,6 +219,10 @@ def main():
     SPEECH_HISTORY_DIR = expand_dir(SPEECH_HISTORY_DIR)
     input_idx = rospy.get_param('/ros_speech2text/audio_device_idx',None)
     CHUNK_SIZE = int(RATE/10)
+    DYNAMIC_THRESHOLD = rospy.get_param('/ros_speech2text/enable_dynamic_threshold',False)
+    DYNAMIC_THRESHOLD_Percentage = rospy.get_param('/ros_speech2text/audio_dynamic_percentage',None)
+    DYNAMIC_THRESHOLD_Frame = rospy.get_param('/ros_speech2text/audio_dynamic_frame',None)
+
 
     speech_client = speech.Client()
     # signal.signal(signal.SIGINT, sig_hand)
