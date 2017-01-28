@@ -109,7 +109,7 @@ def get_next_utter(stream):
         snd_data = array('h', stream.read(CHUNK_SIZE))
         if byteorder == 'big':
             snd_data.byteswap()
-        
+
 
         if not DYNAMIC_THRESHOLD:
             r.extend(snd_data)
@@ -135,7 +135,7 @@ def get_next_utter(stream):
             elif not silent and snd_started:
                 r.extend(snd_data)
             elif silent and not snd_started:
-                
+
                 peak_count = 0
                 # flush buffer
                 r = array('h')
@@ -158,7 +158,8 @@ def get_next_utter(stream):
     stream.stop_stream()
 
     r = normalize(r)
-    #r = trim(start_frame,end_frame,r)
+    if not DYNAMIC_THRESHOLD:
+        r = trim(start_frame,end_frame,r)
     r = add_silence(r, 0.5)
     return r
 
@@ -179,7 +180,7 @@ def recog(speech_client, sn, context):
             # print('Transcript: {}'.format(alternative.transcript))
             return alternative.transcript
     except ValueError:
-        rospy.loginfo('No good result returned')
+        rospy.logwarn('No good result returned')
         return None
 
 def record_to_file(sample_width, data, sn):
@@ -229,6 +230,7 @@ def main():
     SPEECH_HISTORY_DIR = expand_dir(SPEECH_HISTORY_DIR)
     input_idx = rospy.get_param('/ros_speech2text/audio_device_idx',None)
     CHUNK_SIZE = int(RATE/10)
+    # CHUNK_SIZE = 8192
     DYNAMIC_THRESHOLD = rospy.get_param('/ros_speech2text/enable_dynamic_threshold',False)
     DYNAMIC_THRESHOLD_Percentage = rospy.get_param('/ros_speech2text/audio_dynamic_percentage',None)
     DYNAMIC_THRESHOLD_Frame = rospy.get_param('/ros_speech2text/audio_dynamic_frame',None)
