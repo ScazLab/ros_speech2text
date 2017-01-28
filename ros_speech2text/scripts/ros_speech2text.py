@@ -31,7 +31,7 @@ DYNAMIC_THRESHOLD_Frame = None
 
 def is_silent(snd_data):
     "Returns 'True' if below the 'silent' threshold"
-    rospy.logdebug(max(snd_data))
+    rospy.loginfo(max(snd_data))
     return max(snd_data) < THRESHOLD
 
 def is_silent_dynamic(avg_volume, snd_data):
@@ -109,9 +109,10 @@ def get_next_utter(stream):
         snd_data = array('h', stream.read(CHUNK_SIZE))
         if byteorder == 'big':
             snd_data.byteswap()
-        r.extend(snd_data)
+        
 
         if not DYNAMIC_THRESHOLD:
+            r.extend(snd_data)
             silent = is_silent(snd_data)
             if silent and snd_started:
                 num_silent += 1
@@ -125,29 +126,39 @@ def get_next_utter(stream):
 
         if DYNAMIC_THRESHOLD:
             avg_volume = (avg_volume*frame_count + max(snd_data))/(frame_count+1)
+            rospy.loginfo("[AVG_VOLUME] "+ str(avg_volume))
             frame_count += 1
             silent = is_silent_dynamic(avg_volume, snd_data)
             if silent and snd_started:
+                r.extend(snd_data)
                 num_silent += 1
+            elif not silent and snd_started:
+                r.extend(snd_data)
             elif silent and not snd_started:
+                
                 peak_count = 0
+                # flush buffer
+                r = array('h')
             elif not silent and not snd_started:
                 if peak_count>=DYNAMIC_THRESHOLD_Frame:
                     rospy.loginfo('collecting audio segment')
+                    r.extend(snd_data)
                     start_frame = snd_data
                     snd_started = True
                     num_silent = 0
                 else:
                     peak_count += 1
+                    r.extend(snd_data)
             if snd_started and num_silent > 10:
                 rospy.loginfo('audio segmend completed')
+                r.extend(snd_data)
                 end_frame = snd_data
                 break
 
     stream.stop_stream()
 
     r = normalize(r)
-    r = trim(start_frame,end_frame,r)
+    #r = trim(start_frame,end_frame,r)
     r = add_silence(r, 0.5)
     return r
 
