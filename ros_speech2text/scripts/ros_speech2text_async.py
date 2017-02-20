@@ -29,6 +29,7 @@ run_flag = True
 DYNAMIC_THRESHOLD = None
 DYNAMIC_THRESHOLD_Percentage = None
 DYNAMIC_THRESHOLD_Frame = None
+OPERATION_QUEUE = []
 
 def is_silent(snd_data):
     "Returns 'True' if below the 'silent' threshold"
@@ -77,7 +78,7 @@ def add_silence(snd_data, seconds):
     r.extend([0 for i in xrange(int(seconds*RATE))])
     return r
 
-def get_next_utter(stream):
+def get_next_utter(stream,min_avg_volume):
     num_silent = 0
     snd_started = False
     stream.start_stream()
@@ -121,7 +122,7 @@ def get_next_utter(stream):
                 volume_queue.put(max(snd_data))
                 volume_sum += max(snd_data)
                 q_size += 1
-            avg_volume = volume_sum/q_size
+            avg_volume = max(volume_sum/q_size,min_avg_volume)
 
             rospy.loginfo("[AVG_VOLUME] "+ str(avg_volume))
             frame_count += 1
@@ -174,14 +175,8 @@ def recog(speech_client, sn, context):
             encoding='LINEAR16',
             sample_rate=RATE)
 
-    try:
-        alternatives = speech_client.speech_api.sync_recognize(sample = audio_sample, speech_context = context)
-        for alternative in alternatives:
-            # print('Transcript: {}'.format(alternative.transcript))
-            return alternative.transcript
-    except ValueError:
-        rospy.logwarn('No good result returned')
-        return None
+    operation = speech_client.speech_api.async_recognize(sample = audio_sample, speech_context = context)
+    return operation
 
 def record_to_file(sample_width, data, sn):
     "Records from the microphone and outputs the resulting data to 'path'"
@@ -208,8 +203,17 @@ def sig_hand(signum, frame):
     run_flag = False
     print("Stopping Recognition")
 
-# def hook():
-#     print("stopping")
+def check_operation(pub):
+    global OPERATION_QUEUE
+    for op in OPERATION_QUEUE[:]:
+        if op.complete:
+            for result in op.results:
+                for alter in result.alternatives:
+                    rospy.loginfo("RESULTS COMING")
+                    rospy.loginfo("%s,confidence:%d"%(alter.transcript,alter.confidence))
+                    pub.publish(alter.transcript)
+            OPERATION_QUEUE.remove(op)
+
 
 def main():
     global RATE
@@ -220,6 +224,7 @@ def main():
     global DYNAMIC_THRESHOLD
     global DYNAMIC_THRESHOLD_Percentage
     global DYNAMIC_THRESHOLD_Frame
+    global OPERATION_QUEUE
 
     pub = rospy.Publisher('user_input', String, queue_size=10)
     rospy.init_node('speech2text_engine', anonymous=True)
@@ -234,7 +239,7 @@ def main():
     DYNAMIC_THRESHOLD = rospy.get_param('/ros_speech2text/enable_dynamic_threshold',False)
     DYNAMIC_THRESHOLD_Percentage = rospy.get_param('/ros_speech2text/audio_dynamic_percentage',None)
     DYNAMIC_THRESHOLD_Frame = rospy.get_param('/ros_speech2text/audio_dynamic_frame',None)
-
+    min_avg_volume = 100
     # get input device ID
     p = pyaudio.PyAudio()
     device_list = [p.get_device_info_by_index(i)['name'] for i in range(p.get_device_count())]
@@ -252,7 +257,7 @@ def main():
 
     while not rospy.is_shutdown():
     # while run_flag:
-        aud_data = get_next_utter(stream)
+        aud_data = get_next_utter(stream,min_avg_volume)
         if aud_data == None:
             rospy.loginfo("Node terminating")
             break
@@ -260,11 +265,10 @@ def main():
         #     break
         record_to_file(sample_width,aud_data, sn)
         context = rospy.get_param('/ros_speech2text/speech_context',[])
-        transcript = recog(speech_client, sn, context)
+        operation = recog(speech_client, sn, context)
+        OPERATION_QUEUE.append(operation)
+        check_operation(pub)
         sn += 1
-        if transcript:
-            rospy.loginfo(transcript)
-            pub.publish(transcript)
 
     stream.close()
     p.terminate()
