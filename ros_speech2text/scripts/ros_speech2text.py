@@ -127,7 +127,7 @@ def get_next_utter(stream):
             frame_count += 1
             silent = is_silent_dynamic(avg_volume, snd_data)
 
-            
+
 
             if silent and snd_started:
                 r.extend(snd_data)
@@ -235,11 +235,6 @@ def main():
     DYNAMIC_THRESHOLD_Percentage = rospy.get_param('/ros_speech2text/audio_dynamic_percentage',None)
     DYNAMIC_THRESHOLD_Frame = rospy.get_param('/ros_speech2text/audio_dynamic_frame',None)
 
-
-    speech_client = speech.Client()
-    # signal.signal(signal.SIGINT, sig_hand)
-    sn = 0
-
     # get input device ID
     p = pyaudio.PyAudio()
     device_list = [p.get_device_info_by_index(i)['name'] for i in range(p.get_device_count())]
@@ -250,6 +245,10 @@ def main():
     rospy.loginfo("Using device: " + p.get_device_info_by_index(input_idx)['name'])
     stream = p.open(format=FORMAT, channels=1, rate=RATE,input=True, start = False, input_device_index=input_idx, output=False, frames_per_buffer=CHUNK_SIZE)
     sample_width = p.get_sample_size(FORMAT)
+
+    speech_client = speech.Client()
+    # signal.signal(signal.SIGINT, sig_hand)
+    sn = 0
 
     while not rospy.is_shutdown():
     # while run_flag:
