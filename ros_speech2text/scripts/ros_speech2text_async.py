@@ -15,6 +15,7 @@ import rospy
 import signal
 import sys
 import Queue
+import thread
 
 # Audio recording parameters
 # RATE = 16000
@@ -198,21 +199,20 @@ def expand_dir(SPEECH_HISTORY_DIR):
         os.makedirs(SPEECH_HISTORY_DIR)
     return SPEECH_HISTORY_DIR
 
-def sig_hand(signum, frame):
-    global run_flag
-    run_flag = False
-    print("Stopping Recognition")
-
 def check_operation(pub):
     global OPERATION_QUEUE
-    for op in OPERATION_QUEUE[:]:
-        if op.complete:
-            for result in op.results:
-                for alter in result.alternatives:
-                    rospy.loginfo("RESULTS COMING")
-                    rospy.loginfo("%s,confidence:%d"%(alter.transcript,alter.confidence))
-                    pub.publish(alter.transcript)
-            OPERATION_QUEUE.remove(op)
+    while not rospy.is_shutdown():
+        rospy.loginfo("check operation results")
+        for op in OPERATION_QUEUE[:]:
+            if op.complete:
+                for result in op.results:
+                    # rospy.loginfo("RESULTS COMING")
+                    rospy.loginfo("%s,confidence:%f"%(result.transcript,result.confidence))
+                    pub.publish(result.transcript)
+                OPERATION_QUEUE.remove(op)
+            else:
+                op.poll()
+        rospy.sleep(1)
 
 
 def main():
@@ -252,8 +252,9 @@ def main():
     sample_width = p.get_sample_size(FORMAT)
 
     speech_client = speech.Client()
-    # signal.signal(signal.SIGINT, sig_hand)
     sn = 0
+
+    thread.start_new_thread(check_operation,(pub,))
 
     while not rospy.is_shutdown():
     # while run_flag:
@@ -266,8 +267,11 @@ def main():
         record_to_file(sample_width,aud_data, sn)
         context = rospy.get_param('/ros_speech2text/speech_context',[])
         operation = recog(speech_client, sn, context)
+        # while not operation.complete:
+        #     pass
+
         OPERATION_QUEUE.append(operation)
-        check_operation(pub)
+        # check_operation(pub)
         sn += 1
 
     stream.close()
