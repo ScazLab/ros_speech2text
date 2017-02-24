@@ -79,7 +79,7 @@ def add_silence(snd_data, seconds):
     r.extend([0 for i in xrange(int(seconds*RATE))])
     return r
 
-def get_next_utter(stream,min_avg_volume):
+def get_next_utter(stream,min_avg_volume,pub_screen):
     num_silent = 0
     snd_started = False
     stream.start_stream()
@@ -92,6 +92,10 @@ def get_next_utter(stream,min_avg_volume):
     q_size = 0
 
     while 1:
+        if not snd_started:
+            pub_screen.publish("Listening")
+        if snd_started:
+            pub_screen.publish("Sentence Started")
         if rospy.is_shutdown():
             return None
         # little endian, signed short
@@ -158,7 +162,7 @@ def get_next_utter(stream,min_avg_volume):
                 break
 
     stream.stop_stream()
-
+    pub_screen.publish("Sentence Ended")
     r = normalize(r)
     if not DYNAMIC_THRESHOLD:
         r = trim(r)
@@ -199,7 +203,7 @@ def expand_dir(SPEECH_HISTORY_DIR):
         os.makedirs(SPEECH_HISTORY_DIR)
     return SPEECH_HISTORY_DIR
 
-def check_operation(pub):
+def check_operation(pub_text):
     global OPERATION_QUEUE
     while not rospy.is_shutdown():
         rospy.loginfo("check operation results")
@@ -208,7 +212,7 @@ def check_operation(pub):
                 for result in op.results:
                     # rospy.loginfo("RESULTS COMING")
                     rospy.loginfo("%s,confidence:%f"%(result.transcript,result.confidence))
-                    pub.publish(result.transcript)
+                    pub_text.publish(result.transcript)
                 OPERATION_QUEUE.remove(op)
             else:
                 op.poll()
@@ -226,7 +230,8 @@ def main():
     global DYNAMIC_THRESHOLD_Frame
     global OPERATION_QUEUE
 
-    pub = rospy.Publisher('user_input', String, queue_size=10)
+    pub_text = rospy.Publisher('/ros_speech2text/user_output', String, queue_size=10)
+    pub_screen = rospy.Publisher('/svox_tts/speech_output', String, queue_size=10)
     rospy.init_node('speech2text_engine', anonymous=True)
     # default sample rate 16000
     RATE = rospy.get_param('/ros_speech2text/audio_rate',16000)
@@ -237,9 +242,10 @@ def main():
     CHUNK_SIZE = int(RATE/10)
     # CHUNK_SIZE = 8192
     DYNAMIC_THRESHOLD = rospy.get_param('/ros_speech2text/enable_dynamic_threshold',False)
-    DYNAMIC_THRESHOLD_Percentage = rospy.get_param('/ros_speech2text/audio_dynamic_percentage',None)
-    DYNAMIC_THRESHOLD_Frame = rospy.get_param('/ros_speech2text/audio_dynamic_frame',None)
-    min_avg_volume = 100
+    DYNAMIC_THRESHOLD_Percentage = rospy.get_param('/ros_speech2text/audio_dynamic_percentage',50)
+    DYNAMIC_THRESHOLD_Frame = rospy.get_param('/ros_speech2text/audio_dynamic_frame',3)
+    MIN_AVG_VOLUME = rospy.get_param('/ros_speech2text/audio_min_avg',100)
+
     # get input device ID
     p = pyaudio.PyAudio()
     device_list = [p.get_device_info_by_index(i)['name'] for i in range(p.get_device_count())]
@@ -254,24 +260,18 @@ def main():
     speech_client = speech.Client()
     sn = 0
 
-    thread.start_new_thread(check_operation,(pub,))
+    thread.start_new_thread(check_operation,(pub_text,))
 
     while not rospy.is_shutdown():
-    # while run_flag:
-        aud_data = get_next_utter(stream,min_avg_volume)
+        aud_data = get_next_utter(stream,MIN_AVG_VOLUME,pub_screen)
         if aud_data == None:
             rospy.loginfo("Node terminating")
             break
-        # if rospy.is_shutdown():
-        #     break
         record_to_file(sample_width,aud_data, sn)
         context = rospy.get_param('/ros_speech2text/speech_context',[])
         operation = recog(speech_client, sn, context)
-        # while not operation.complete:
-        #     pass
 
         OPERATION_QUEUE.append(operation)
-        # check_operation(pub)
         sn += 1
 
     stream.close()

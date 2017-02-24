@@ -8,6 +8,7 @@
     <param    name ="/ros_speech2text/enable_dynamic_threshold" value="True"  />
     <param    name ="/ros_speech2text/audio_dynamic_percentage" value="50"  />
     <param    name ="/ros_speech2text/audio_dynamic_frame" value="3"  />
+    <param    name ="/ros_speech2text/audio_min_avg" value="100"  />
 
     <rosparam param="/ros_speech2text/speech_context">
         ["screwdriver","left","right","yes","no","baxter","screw","table","hammer","board","can","you","tuck","untuck","give","pass","hand","move","help"]
