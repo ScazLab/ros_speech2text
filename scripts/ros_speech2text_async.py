@@ -98,7 +98,7 @@ def get_next_utter(stream,min_avg_volume,pub_screen):
         if snd_started:
             pub_screen.publish("Sentence Started")
         if rospy.is_shutdown():
-            return None
+            return None,None,None
         # little endian, signed short
         snd_data = array('h', stream.read(CHUNK_SIZE))
         # avg_volume = max(snd_data)
