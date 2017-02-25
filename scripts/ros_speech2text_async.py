@@ -4,6 +4,7 @@ from sys import byteorder
 from array import array
 from struct import pack
 from std_msgs.msg import String
+from ros_speech2text.msg import transcript
 from google.cloud import speech
 from time import time
 
@@ -113,6 +114,7 @@ def get_next_utter(stream,min_avg_volume,pub_screen):
             elif not silent and not snd_started:
                 rospy.loginfo('collecting audio segment')
                 snd_started = True
+                start_time = rospy.get_rostime()
                 num_silent = 0
             if snd_started and num_silent > 10:
                 rospy.loginfo('audio segment completed')
@@ -150,6 +152,7 @@ def get_next_utter(stream,min_avg_volume,pub_screen):
                     rospy.loginfo('collecting audio segment')
                     r.extend(snd_data)
                     start_frame = snd_data
+                    start_time = rospy.get_rostime()
                     snd_started = True
                     num_silent = 0
                 else:
@@ -163,11 +166,12 @@ def get_next_utter(stream,min_avg_volume,pub_screen):
 
     stream.stop_stream()
     pub_screen.publish("Sentence Ended")
+    end_time = rospy.get_rostime()
     r = normalize(r)
     if not DYNAMIC_THRESHOLD:
         r = trim(r)
     r = add_silence(r, 0.5)
-    return r
+    return r,start_time,end_time
 
 def recog(speech_client, sn, context):
     file_name = 'sentence' + str(sn) + '.wav'
@@ -208,14 +212,25 @@ def check_operation(pub_text):
     while not rospy.is_shutdown():
         rospy.loginfo("check operation results")
         for op in OPERATION_QUEUE[:]:
-            if op.complete:
-                for result in op.results:
+            if op[0].complete:
+                for result in op[0].results:
                     # rospy.loginfo("RESULTS COMING")
-                    rospy.loginfo("%s,confidence:%f"%(result.transcript,result.confidence))
-                    pub_text.publish(result.transcript)
+                    msg = transcript()
+                    msg.start_time = op[1]
+                    msg.end_time = op[2]
+                    msg.speech_duration = op[2]-op[1]
+                    msg.received_time = rospy.get_rostime()
+                    msg.transcript = result.transcript
+                    msg.confidence = result.confidence
+                    rospy.logwarn("%s,confidence:%f"%(result.transcript,result.confidence))
+                    pub_text.publish(msg)
                 OPERATION_QUEUE.remove(op)
             else:
-                op.poll()
+                try:
+                    op[0].poll()
+                except ValueError:
+                    rospy.logerr("No good results returned!")
+                    OPERATION_QUEUE.remove(op)
         rospy.sleep(1)
 
 
@@ -230,7 +245,7 @@ def main():
     global DYNAMIC_THRESHOLD_Frame
     global OPERATION_QUEUE
 
-    pub_text = rospy.Publisher('/ros_speech2text/user_output', String, queue_size=10)
+    pub_text = rospy.Publisher('/ros_speech2text/user_output', transcript, queue_size=10)
     pub_screen = rospy.Publisher('/svox_tts/speech_output', String, queue_size=10)
     rospy.init_node('speech2text_engine', anonymous=True)
     # default sample rate 16000
@@ -263,15 +278,14 @@ def main():
     thread.start_new_thread(check_operation,(pub_text,))
 
     while not rospy.is_shutdown():
-        aud_data = get_next_utter(stream,MIN_AVG_VOLUME,pub_screen)
+        aud_data,start_time,end_time = get_next_utter(stream,MIN_AVG_VOLUME,pub_screen)
         if aud_data == None:
             rospy.loginfo("Node terminating")
             break
         record_to_file(sample_width,aud_data, sn)
         context = rospy.get_param('/ros_speech2text/speech_context',[])
         operation = recog(speech_client, sn, context)
-
-        OPERATION_QUEUE.append(operation)
+        OPERATION_QUEUE.append([operation,start_time,end_time])
         sn += 1
 
     stream.close()
