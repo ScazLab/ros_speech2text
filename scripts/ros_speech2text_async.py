@@ -94,7 +94,8 @@ def get_next_utter(stream,min_avg_volume,pub_screen):
 
     while 1:
         if not snd_started:
-            pub_screen.publish("Listening")
+            pass
+            # pub_screen.publish("Listening")
         if snd_started:
             pub_screen.publish("Sentence Started")
         if rospy.is_shutdown():
@@ -112,12 +113,12 @@ def get_next_utter(stream,min_avg_volume,pub_screen):
             if silent and snd_started:
                 num_silent += 1
             elif not silent and not snd_started:
-                rospy.loginfo('collecting audio segment')
+                rospy.logwarn('collecting audio segment')
                 snd_started = True
                 start_time = rospy.get_rostime()
                 num_silent = 0
             if snd_started and num_silent > 10:
-                rospy.loginfo('audio segment completed')
+                rospy.logwarn('audio segment completed')
                 break
 
         if DYNAMIC_THRESHOLD:
@@ -149,7 +150,7 @@ def get_next_utter(stream,min_avg_volume,pub_screen):
                 r = array('h')
             elif not silent and not snd_started:
                 if peak_count>=DYNAMIC_THRESHOLD_Frame:
-                    rospy.loginfo('collecting audio segment')
+                    rospy.logwarn('collecting audio segment')
                     r.extend(snd_data)
                     start_frame = snd_data
                     start_time = rospy.get_rostime()
@@ -159,13 +160,13 @@ def get_next_utter(stream,min_avg_volume,pub_screen):
                     peak_count += 1
                     r.extend(snd_data)
             if snd_started and num_silent > 10:
-                rospy.loginfo('audio segmend completed')
+                rospy.logwarn('audio segmend completed')
                 r.extend(snd_data)
                 end_frame = snd_data
                 break
 
     stream.stop_stream()
-    pub_screen.publish("Sentence Ended")
+    pub_screen.publish("Recognizing")
     end_time = rospy.get_rostime()
     r = normalize(r)
     if not DYNAMIC_THRESHOLD:
@@ -207,7 +208,7 @@ def expand_dir(SPEECH_HISTORY_DIR):
         os.makedirs(SPEECH_HISTORY_DIR)
     return SPEECH_HISTORY_DIR
 
-def check_operation(pub_text):
+def check_operation(pub_text,pub_screen):
     global OPERATION_QUEUE
     while not rospy.is_shutdown():
         rospy.loginfo("check operation results")
@@ -224,6 +225,7 @@ def check_operation(pub_text):
                     msg.confidence = result.confidence
                     rospy.logwarn("%s,confidence:%f"%(result.transcript,result.confidence))
                     pub_text.publish(msg)
+                    pub_screen.publish(result.transcript)
                 OPERATION_QUEUE.remove(op)
             else:
                 try:
@@ -275,7 +277,7 @@ def main():
     speech_client = speech.Client()
     sn = 0
 
-    thread.start_new_thread(check_operation,(pub_text,))
+    thread.start_new_thread(check_operation,(pub_text,pub_screen))
 
     while not rospy.is_shutdown():
         aud_data,start_time,end_time = get_next_utter(stream,MIN_AVG_VOLUME,pub_screen)
