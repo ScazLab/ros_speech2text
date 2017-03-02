@@ -1,19 +1,36 @@
 <launch>
-    <param    name ="/ros_speech2text/audio_rate"      value="44100" />
+    <!-- location of the speech history for the session /-->
     <param    name ="/ros_speech2text/speech_history"  value="~/.ros/ros_speech2text/speech_history" />
-    <!-- param    name ="/ros_speech2text/api_credentials" value="$(find ros_speech2text)/GCloud_SpeechAPI_Cred" /-->
+
+    <!-- sets env var for google apis to work /-->
     <env      name ="GOOGLE_APPLICATION_CREDENTIALS"   value="$(find ros_speech2text)/GCloud_SpeechAPI_Cred" />
-    <param    name ="/ros_speech2text/audio_threshold" value="700"   />
-    <param 	  name ="/ros_speech2text/audio_device_idx" value="3"  />
-    <param    name ="/ros_speech2text/enable_dynamic_threshold" value="True"  />
-    <param    name ="/ros_speech2text/audio_dynamic_percentage" value="50"  />
-    <param    name ="/ros_speech2text/audio_dynamic_frame" value="3"  />
-    <param    name ="/ros_speech2text/audio_min_avg" value="100"  />
 
-    <rosparam param="/ros_speech2text/speech_context">
-        ["screwdriver","left","right","yes","no","baxter","screw","table","hammer","board","can","you","tuck","untuck","give","pass","hand","move","help"]
-    </rosparam>
+    <!-- starts node for asynchronous s2t /-->
+    <node pkg="ros_speech2text" name="ros_speech2text" type="ros_speech2text_async.py" output="screen">
+        <!-- device ID of audio source. If unknown, launch once and get param /ros_speech2text/available_audio_device /-->
+        <param    name ="/ros_speech2text/audio_device_idx" value="3"  />
 
-    <node pkg="ros_speech2text" name="ros_speech2text" type="ros_speech2text_async.py" output="screen" />
+        <!-- rate for your audio capturing device /-->
+        <param    name ="/ros_speech2text/audio_rate"      value="44100" />
 
+        <!-- param for static thresholding /-->
+        <param    name ="/ros_speech2text/audio_threshold" value="700"   />
+
+        <!-- param for dynamic thresholding /-->
+        <param    name ="/ros_speech2text/enable_dynamic_threshold" value="True"  />
+
+        <!-- activate audio recording when volume is this percentage higher than average /-->
+        <param    name ="/ros_speech2text/audio_dynamic_percentage" value="50"  />
+
+        <!-- for x consecutive frames all louder than the percentage we specified, activate recording /-->
+        <param    name ="/ros_speech2text/audio_dynamic_frame" value="3"  />
+
+        <!-- min value of average volume to prevent system from being too sensitive in case of constantly quiet environments /-->
+        <param    name ="/ros_speech2text/audio_min_avg" value="100"  />
+
+        <!-- list of context clues for speech recognition /-->
+        <rosparam param="/ros_speech2text/speech_context">
+            ["screwdriver","left","right","yes","no","baxter","screw","table","hammer","board","can","you","tuck","untuck","give","pass","hand","move","help"]
+        </rosparam>
+    </node>
 </launch>
