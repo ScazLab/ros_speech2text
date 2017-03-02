@@ -18,10 +18,6 @@ import sys
 import Queue
 import thread
 
-# Audio recording parameters
-# RATE = 16000
-# CHUNK_SIZE = int(RATE / 10)  # 100ms
-
 RATE = None
 CHUNK_SIZE = None
 SPEECH_HISTORY_DIR = None
@@ -34,16 +30,26 @@ DYNAMIC_THRESHOLD_Frame = None
 OPERATION_QUEUE = []
 
 def is_silent(snd_data):
-    "Returns 'True' if below the 'silent' threshold"
+    """
+    This is for static thresholding.
+    Returns 'True' if below the 'silent' threshold.
+    """
     rospy.loginfo(max(snd_data))
     return max(snd_data) < THRESHOLD
 
 def is_silent_dynamic(avg_volume, snd_data):
+    """
+    This is for dynamic thresholding.
+    Calculates if the volume of the current data frame is (100+x)% louder
+    than the avg volume.
+    """
     rospy.loginfo(max(snd_data))
     return max(snd_data) < avg_volume*(1+DYNAMIC_THRESHOLD_Percentage/100.0)
 
 def normalize(snd_data):
-    "Average the volume out"
+    """
+    Average the volume out
+    """
     MAXIMUM = 16384
     times = float(MAXIMUM)/max(abs(i) for i in snd_data)
 
@@ -53,7 +59,10 @@ def normalize(snd_data):
     return r
 
 def trim(start, end, snd_data):
-    "Trim the blank spots at the start and end"
+    """
+    This function is not used in dynamic thresholding.
+    Trim the blank spots at the start and end.
+    """
     def _trim(snd_data):
         snd_started = False
         r = array('h')
@@ -74,39 +83,47 @@ def trim(start, end, snd_data):
     return snd_data
 
 def add_silence(snd_data, seconds):
-    "Add silence to the start and end of 'snd_data' of length 'seconds' (float)"
+    """
+    Add silence to the start and end of 'snd_data' of length 'seconds' (float)
+    This prevents some players from skipping the first few frames.
+    """
     r = array('h', [0 for i in xrange(int(seconds*RATE))])
     r.extend(snd_data)
     r.extend([0 for i in xrange(int(seconds*RATE))])
     return r
 
 def get_next_utter(stream,min_avg_volume,pub_screen):
+    """
+    Main function for capturing audio.
+    Parameters:
+        stream: our pyaudio client
+        min_avg_volume: helps thresholding in quiet environments
+        pub_screen: publishes status messages to baxter screen
+    """
     num_silent = 0
     snd_started = False
     stream.start_stream()
     r = array('h')
     peak_count = 0
     avg_volume = 0
-    frame_count = 0
     volume_queue = Queue.Queue(10)
     volume_sum = 0
     q_size = 0
 
     while 1:
-        if not snd_started:
-            pass
-            # pub_screen.publish("Listening")
+        """
+        main loop for audio capturing
+        """
         if snd_started:
             pub_screen.publish("Sentence Started")
         if rospy.is_shutdown():
             return None,None,None
         # little endian, signed short
         snd_data = array('h', stream.read(CHUNK_SIZE))
-        # avg_volume = max(snd_data)
         if byteorder == 'big':
             snd_data.byteswap()
 
-
+        # Static thresholding
         if not DYNAMIC_THRESHOLD:
             r.extend(snd_data)
             silent = is_silent(snd_data)
@@ -121,7 +138,19 @@ def get_next_utter(stream,min_avg_volume,pub_screen):
                 rospy.logwarn('audio segment completed')
                 break
 
+        """
+        Dynamic thresholding
+        Before audio is being considered part of a sentence, peak_count
+        is used to count how many consecutive frames have been above the
+        dynamic threshold volume. Once peak_count is over the specified
+        frame number from ros param, we consider the sentence started and
+        lock the value of avg volume to maintain the standard thresholding
+        standard throughout the sentence. Whenever receiving a frame that 
+        has volume that is too low, we increase num_silent. When num_silent
+        exceeds ten, we consider the sentence finished.
+        """
         if DYNAMIC_THRESHOLD:
+            # Calculate an average volume with a queue of ten previous frames
             if volume_queue.full():
                 out = volume_queue.get()
                 volume_sum -= out
@@ -133,10 +162,7 @@ def get_next_utter(stream,min_avg_volume,pub_screen):
             avg_volume = max(volume_sum/q_size,min_avg_volume)
 
             rospy.loginfo("[AVG_VOLUME] "+ str(avg_volume))
-            frame_count += 1
             silent = is_silent_dynamic(avg_volume, snd_data)
-
-
 
             if silent and snd_started:
                 r.extend(snd_data)
@@ -144,9 +170,7 @@ def get_next_utter(stream,min_avg_volume,pub_screen):
             elif not silent and snd_started:
                 r.extend(snd_data)
             elif silent and not snd_started:
-
                 peak_count = 0
-                # flush buffer
                 r = array('h')
             elif not silent and not snd_started:
                 if peak_count>=DYNAMIC_THRESHOLD_Frame:
@@ -175,6 +199,10 @@ def get_next_utter(stream,min_avg_volume,pub_screen):
     return r,start_time,end_time
 
 def recog(speech_client, sn, context):
+    """
+    Constructs a recog operation with the audio file specified by sn
+    The operation is an asynchronous api call
+    """
     file_name = 'sentence' + str(sn) + '.wav'
     file_path = os.path.join(SPEECH_HISTORY_DIR,file_name)
     with io.open(file_path, 'rb') as audio_file:
@@ -189,7 +217,9 @@ def recog(speech_client, sn, context):
     return operation
 
 def record_to_file(sample_width, data, sn):
-    "Records from the microphone and outputs the resulting data to 'path'"
+    """
+    Saves the audio content in data into a file with sn as a suffix of file name
+    """
     data = pack('<' + ('h'*len(data)), *data)
     file_name = 'sentence' + str(sn) + '.wav'
     file_path = os.path.join(SPEECH_HISTORY_DIR,file_name)
@@ -202,6 +232,9 @@ def record_to_file(sample_width, data, sn):
     rospy.loginfo('file saved')
 
 def expand_dir(SPEECH_HISTORY_DIR):
+    """
+    A function that expands directories so python can find the folder
+    """
     if SPEECH_HISTORY_DIR[0]=='~':
         SPEECH_HISTORY_DIR = os.getenv("HOME") + SPEECH_HISTORY_DIR[1:]
     if not os.path.isdir(SPEECH_HISTORY_DIR):
@@ -209,13 +242,18 @@ def expand_dir(SPEECH_HISTORY_DIR):
     return SPEECH_HISTORY_DIR
 
 def check_operation(pub_text,pub_screen):
+    """
+    This function is intended to be run as a seperate thread that repeatedly
+    checks if any recog operation has finished.
+    The transcript returned is then published on screen of baxter and sent
+    to the ros topic with the custom message type 'transcript'.
+    """
     global OPERATION_QUEUE
     while not rospy.is_shutdown():
         rospy.loginfo("check operation results")
         for op in OPERATION_QUEUE[:]:
             if op[0].complete:
                 for result in op[0].results:
-                    # rospy.loginfo("RESULTS COMING")
                     msg = transcript()
                     msg.start_time = op[1]
                     msg.end_time = op[2]
@@ -247,23 +285,25 @@ def main():
     global DYNAMIC_THRESHOLD_Frame
     global OPERATION_QUEUE
 
+    # Setting up ros params
     pub_text = rospy.Publisher('/ros_speech2text/user_output', transcript, queue_size=10)
     pub_screen = rospy.Publisher('/svox_tts/speech_output', String, queue_size=10)
     rospy.init_node('speech2text_engine', anonymous=True)
-    # default sample rate 16000
     RATE = rospy.get_param('/ros_speech2text/audio_rate',16000)
     THRESHOLD = rospy.get_param('/ros_speech2text/audio_threshold',700)
     SPEECH_HISTORY_DIR = rospy.get_param('/ros_speech2text/speech_history','~/.ros/ros_speech2text/speech_history')
     SPEECH_HISTORY_DIR = expand_dir(SPEECH_HISTORY_DIR)
     input_idx = rospy.get_param('/ros_speech2text/audio_device_idx',None)
     CHUNK_SIZE = int(RATE/10)
-    # CHUNK_SIZE = 8192
     DYNAMIC_THRESHOLD = rospy.get_param('/ros_speech2text/enable_dynamic_threshold',False)
     DYNAMIC_THRESHOLD_Percentage = rospy.get_param('/ros_speech2text/audio_dynamic_percentage',50)
     DYNAMIC_THRESHOLD_Frame = rospy.get_param('/ros_speech2text/audio_dynamic_frame',3)
     MIN_AVG_VOLUME = rospy.get_param('/ros_speech2text/audio_min_avg',100)
 
-    # get input device ID
+    """
+    Set up PyAudio client, and fetch all available devices
+    Get input device ID from ros param, and attempt to use that device as audio source
+    """
     p = pyaudio.PyAudio()
     device_list = [p.get_device_info_by_index(i)['name'] for i in range(p.get_device_count())]
     rospy.set_param('/ros_speech2text/available_audio_device',device_list)
@@ -277,8 +317,16 @@ def main():
     speech_client = speech.Client()
     sn = 0
 
+    """
+    Start thread for checking operation results.
+    Operations are stored in the global variable OPERATION_QUEUE
+    """
     thread.start_new_thread(check_operation,(pub_text,pub_screen))
 
+
+    """
+    Main loop for fetching audio and making operation requests.
+    """
     while not rospy.is_shutdown():
         aud_data,start_time,end_time = get_next_utter(stream,MIN_AVG_VOLUME,pub_screen)
         if aud_data == None:
