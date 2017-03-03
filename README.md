@@ -18,6 +18,10 @@ Installation of the package follows the standard building procedure of ROS packa
  1. Compile the repo: `catkin build ros_speech2text`
  2. To test if the package is working, run `roslaunch ros_speech2text ros_speech2text_async.launch`.
  
+### Authentication Instructions
+
+Authentication of the `Google Cloud Speech API` is done by setting an environmental variable. For instructions on obtaing an API credential, check [here](https://cloud.google.com/speech/docs/getting-started). The path of the API credential should be supplied in the launch file, see below for more instructions.
+ 
 ## Execution
 
 ### Initial steps (mainly for Scazlab students)
@@ -25,10 +29,6 @@ Installation of the package follows the standard building procedure of ROS packa
  0. Turn on the robot. Wait for the robot to finish its start-up phase.
  1. Be sure that the system you're running the code has access to the Baxter robot. This is usually done by running the `baxter.sh` script that should be provided in your Baxter installation. See [here](http://sdk.rethinkrobotics.com/wiki/Hello_Baxter#Source_ROS_Environment_Setup_Script) for more info. **@ScazLab students** → for what concerns the Baxter robot on the ScazLab, this means that every time you have to run some ROS software to be used on the robot you should open a new terminal, and do the following: ` cd ros_devel_ws && ./baxter.sh `. A change in the terminal prompt should acknowledge that you now have access to `baxter.local`. __Please be aware of this issue when you operate the robot__.
  2. Untuck the robot. **@ScazLab students** → we have an alias for this, so you just have to type `untuck`
-
-### Authentication Instructions
-
-Authentication of the `Google Cloud Speech API` is done by setting an environmental variable. For instructions on obtaing an API credential, check [here](https://cloud.google.com/speech/docs/getting-started). The path of the API credential should be supplied in the launch file, see below for more instructions.
 
 ### Launch file parameters
 
@@ -47,16 +47,23 @@ Authentication of the `Google Cloud Speech API` is done by setting an environmen
 * `speech_context`: list of context clues for speech recognition
 
 ### Recognition modes
-#### `Synchronous Recognition`
+#### Synchronous Recognition
+The synchronous recognition mode can be launched by `roslaunch ros_speech2text ros_speech2text_sync.launch`. In the synchronous mode, after a sentence input is completed, the system makes a blocking API call, and all audio input is halted until the recognition results are returned from the server.
 
-#### `Asynchronous Recognition`
+#### Asynchronous Recognition
+The synchronous recognition mode can be launched by `roslaunch ros_speech2text ros_speech2text_async.launch`. A separate thread in this mode polls the results of the async API calls repeatedly, while the main thread keeps on capturing audio and recording sentence.
 
 ### Misc
+The results of recognition is published to the topic `/ros_speech2text/user_output` with the custom message type `transcript`.
 
 ## Troubleshooting
 1. What if after `catkin build`, it seems like the ROS package still cannot be found?
 
    Run `catkin clean` and `rospack profile`, and try to build the package again.
 2. What if I don't know the device ID of my audio source?
+
+   Run the node once, and use rosparam to get the param `/ros_speech2text/available_audio_device`. The devices are sorted by device ID starting from zero.
 3. Can I have multiple instances running at the same time?
+
+   Yes, the private parameters can help you configure different audio sources for different nodes.
 
