@@ -273,6 +273,18 @@ def check_operation(pub_text,pub_screen):
                     OPERATION_QUEUE.remove(op)
         rospy.sleep(1)
 
+def cleanup():
+    """
+    Cleans up speech history directory after session ends
+    """
+    speech_directory = SPEECH_HISTORY_DIR
+    for file in os.listdir(speech_directory):
+        file_path = os.path.join(speech_directory,file)
+        try:
+            os.remove(file_path)
+        except Exception as e:
+            rospy.logerr(e)
+
 
 def main():
     global RATE
@@ -310,8 +322,14 @@ def main():
 
     if input_idx == None:
         input_idx = p.get_default_input_device_info()['index']
-    rospy.loginfo("Using device: " + p.get_device_info_by_index(input_idx)['name'])
-    stream = p.open(format=FORMAT, channels=1, rate=RATE,input=True, start = False, input_device_index=input_idx, output=False, frames_per_buffer=CHUNK_SIZE)
+    
+    try:
+        rospy.loginfo("Using device: " + p.get_device_info_by_index(input_idx)['name'])
+        stream = p.open(format=FORMAT, channels=1, rate=RATE,input=True, start = False, input_device_index=input_idx, output=False, frames_per_buffer=CHUNK_SIZE)
+    except IOError:
+        rospy.logerr("Invalid device ID. Available devices listed in rosparam /ros_speech2text/available_audio_device")
+        p.terminate()
+        return
     sample_width = p.get_sample_size(FORMAT)
 
     speech_client = speech.Client()
@@ -340,6 +358,7 @@ def main():
 
     stream.close()
     p.terminate()
+    cleanup()
 
 if __name__ == '__main__':
     main()
