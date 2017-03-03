@@ -235,8 +235,11 @@ def expand_dir(SPEECH_HISTORY_DIR):
     """
     A function that expands directories so python can find the folder
     """
+    pid = os.getpid()
+    SPEECH_HISTORY_DIR = SPEECH_HISTORY_DIR + '/' + str(pid)
     if SPEECH_HISTORY_DIR[0]=='~':
-        SPEECH_HISTORY_DIR = os.getenv("HOME") + SPEECH_HISTORY_DIR[1:]
+        # os.path.join(os.getenv("HOME"),SPEECH_HISTORY_DIR[1:],pid)
+        SPEECH_HISTORY_DIR = os.getenv("HOME") +SPEECH_HISTORY_DIR[1:]
     if not os.path.isdir(SPEECH_HISTORY_DIR):
         os.makedirs(SPEECH_HISTORY_DIR)
     return SPEECH_HISTORY_DIR
@@ -284,6 +287,7 @@ def cleanup():
             os.remove(file_path)
         except Exception as e:
             rospy.logerr(e)
+    os.rmdir(speech_directory)
 
 
 def main():
