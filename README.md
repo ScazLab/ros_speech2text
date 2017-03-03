@@ -32,10 +32,31 @@ Authentication of the `Google Cloud Speech API` is done by setting an environmen
 
 ### Launch file parameters
 
+#### Public ROS params
+* `/ros_speech2text/speech_history`: location of the speech history for the session
+* `GOOGLE_APPLICATION_CREDENTIALS`: sets env var for google apis to work
+
+#### Private ROS params
+* `audio_device_idx`: device ID of audio source.
+* `audio_rate`: rate for your audio capturing device
+* `audio_threshold`: volume threshold for static thresholding
+* `enable_dynamic_threshold`: param for dynamic thresholding
+* `audio_dynamic_percentage`: activate audio recording when volume is this percentage higher than average
+* `audio_dynamic_frame`: for x consecutive frames all louder than the percentage we specified, activate recording
+* `audio_min_avg`: min value of average volume to prevent system from being too sensitive in case of constantly quiet environments
+* `speech_context`: list of context clues for speech recognition
+
 ### Recognition modes
+#### `Synchronous Recognition`
+
+#### `Asynchronous Recognition`
 
 ### Misc
 
 ## Troubleshooting
 1. What if after `catkin build`, it seems like the ROS package still cannot be found?
+
    Run `catkin clean` and `rospack profile`, and try to build the package again.
+2. What if I don't know the device ID of my audio source?
+3. Can I have multiple instances running at the same time?
+
