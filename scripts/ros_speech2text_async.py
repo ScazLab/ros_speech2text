@@ -156,7 +156,10 @@ def main():
 
     try:
         rospy.loginfo("Using device: " + p.get_device_info_by_index(input_idx)['name'])
-        stream = p.open(format=FORMAT, channels=1, rate=speech_detector.rate, input=True, start=False, input_device_index=input_idx, output=False, frames_per_buffer=speech_detector.chunk_size)
+        stream = p.open(format=FORMAT, channels=1, rate=speech_detector.rate,
+                        input=True, start=False, input_device_index=input_idx,
+                        output=False,
+                        frames_per_buffer=speech_detector.chunk_size * 10)
     except IOError:
         rospy.logerr("Invalid device ID. Available devices listed in rosparam /ros_speech2text/available_audio_device")
         p.terminate()

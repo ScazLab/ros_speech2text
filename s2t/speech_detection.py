@@ -141,7 +141,7 @@ class SpeechDetector:
             if rospy.is_shutdown():
                 return None, None, None
             # little endian, signed short
-            snd_data = array('h', stream.read(self.chunk_size))
+            snd_data = array('h', stream.read(self.chunk_size, exception_on_overflow=False))
             if byteorder == 'big':
                 snd_data.byteswap()
 
