@@ -11,6 +11,7 @@ import pyaudio
 import wave
 import io
 import os
+import sys
 import rospy
 import thread
 
@@ -61,11 +62,8 @@ def expand_dir(speech_history_dir):
     """
     A function that expands directories so python can find the folder
     """
-    pid = os.getpid()
-    speech_history_dir = speech_history_dir + '/' + str(pid)
-    if speech_history_dir[0] == '~':
-        # os.path.join(os.getenv("HOME"),speech_history_dir[1:],pid)
-        speech_history_dir = os.getenv("HOME") + speech_history_dir[1:]
+    speech_history_dir = os.path.expanduser(
+        os.path.join(speech_history_dir, str(os.getpid())))
     if not os.path.isdir(speech_history_dir):
         os.makedirs(speech_history_dir)
     return speech_history_dir
@@ -163,7 +161,7 @@ def main():
     except IOError:
         rospy.logerr("Invalid device ID. Available devices listed in rosparam /ros_speech2text/available_audio_device")
         p.terminate()
-        return
+        sys.exit(1)
     sample_width = p.get_sample_size(FORMAT)
 
     speech_client = speech.Client()
