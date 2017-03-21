@@ -5,10 +5,7 @@ from struct import pack
 from std_msgs.msg import String
 from google.cloud import speech
 from ros_speech2text.msg import transcript
-from s2t.speech_detection import (get_next_utter, RATE, CHUNK_SIZE, THRESHOLD,
-                                  DYNAMIC_THRESHOLD,
-                                  DYNAMIC_THRESHOLD_Percentage,
-                                  DYNAMIC_THRESHOLD_Frame)
+from s2t.speech_detection import SpeechDetector
 
 import pyaudio
 import wave
@@ -24,7 +21,7 @@ run_flag = True
 OPERATION_QUEUE = []
 
 
-def recog(speech_client, sn, context):
+def recog(speech_client, sn, context, rate):
     """
     Constructs a recog operation with the audio file specified by sn
     The operation is an asynchronous api call
@@ -37,14 +34,14 @@ def recog(speech_client, sn, context):
             content,
             source_uri=None,
             encoding='LINEAR16',
-            sample_rate=RATE)
+            sample_rate=rate)
 
     operation = speech_client.speech_api.async_recognize(sample=audio_sample,
                                                          speech_context=context)
     return operation
 
 
-def record_to_file(sample_width, data, sn):
+def record_to_file(sample_width, data, sn, rate):
     """
     Saves the audio content in data into a file with sn as a suffix of file name
     """
@@ -54,24 +51,24 @@ def record_to_file(sample_width, data, sn):
     wf = wave.open(file_path, 'wb')
     wf.setnchannels(1)
     wf.setsampwidth(sample_width)
-    wf.setframerate(RATE)
+    wf.setframerate(rate)
     wf.writeframes(data)
     wf.close()
     rospy.loginfo('file saved')
 
 
-def expand_dir(SPEECH_HISTORY_DIR):
+def expand_dir(speech_history_dir):
     """
     A function that expands directories so python can find the folder
     """
     pid = os.getpid()
-    SPEECH_HISTORY_DIR = SPEECH_HISTORY_DIR + '/' + str(pid)
-    if SPEECH_HISTORY_DIR[0] == '~':
-        # os.path.join(os.getenv("HOME"),SPEECH_HISTORY_DIR[1:],pid)
-        SPEECH_HISTORY_DIR = os.getenv("HOME") + SPEECH_HISTORY_DIR[1:]
-    if not os.path.isdir(SPEECH_HISTORY_DIR):
-        os.makedirs(SPEECH_HISTORY_DIR)
-    return SPEECH_HISTORY_DIR
+    speech_history_dir = speech_history_dir + '/' + str(pid)
+    if speech_history_dir[0] == '~':
+        # os.path.join(os.getenv("HOME"),speech_history_dir[1:],pid)
+        speech_history_dir = os.getenv("HOME") + speech_history_dir[1:]
+    if not os.path.isdir(speech_history_dir):
+        os.makedirs(speech_history_dir)
+    return speech_history_dir
 
 
 def check_operation(pub_text, pub_screen):
@@ -122,29 +119,28 @@ def cleanup():
 
 
 def main():
-    global RATE
-    global CHUNK_SIZE
-    global THRESHOLD
     global SPEECH_HISTORY_DIR
     global FORMAT
-    global DYNAMIC_THRESHOLD
-    global DYNAMIC_THRESHOLD_Percentage
-    global DYNAMIC_THRESHOLD_Frame
     global OPERATION_QUEUE
 
     # Setting up ros params
     pub_text = rospy.Publisher('/ros_speech2text/user_output', transcript, queue_size=10)
     pub_screen = rospy.Publisher('/svox_tts/speech_output', String, queue_size=10)
     rospy.init_node('speech2text_engine', anonymous=True)
-    RATE = rospy.get_param('/ros_speech2text/audio_rate', 16000)
-    THRESHOLD = rospy.get_param('/ros_speech2text/audio_threshold', 700)
+
+    rate = rospy.get_param('/ros_speech2text/audio_rate', 16000)
+    speech_detector = SpeechDetector(
+        rate,
+        rospy.get_param('/ros_speech2text/audio_threshold', 700),
+        dynamic_threshold=rospy.get_param('/ros_speech2text/enable_dynamic_threshold', False),
+        dynamic_threshold_percentage=rospy.get_param('/ros_speech2text/audio_dynamic_percentage', 50),
+        dynamic_threshold_frame=rospy.get_param('/ros_speech2text/audio_dynamic_frame', 3),
+        logger=rospy.loginfo,
+    )
+
     SPEECH_HISTORY_DIR = rospy.get_param('/ros_speech2text/speech_history', '~/.ros/ros_speech2text/speech_history')
     SPEECH_HISTORY_DIR = expand_dir(SPEECH_HISTORY_DIR)
     input_idx = rospy.get_param('/ros_speech2text/audio_device_idx', None)
-    CHUNK_SIZE = int(RATE / 10)
-    DYNAMIC_THRESHOLD = rospy.get_param('/ros_speech2text/enable_dynamic_threshold', False)
-    DYNAMIC_THRESHOLD_Percentage = rospy.get_param('/ros_speech2text/audio_dynamic_percentage', 50)
-    DYNAMIC_THRESHOLD_Frame = rospy.get_param('/ros_speech2text/audio_dynamic_frame', 3)
     MIN_AVG_VOLUME = rospy.get_param('/ros_speech2text/audio_min_avg', 100)
 
     """
@@ -160,7 +156,7 @@ def main():
 
     try:
         rospy.loginfo("Using device: " + p.get_device_info_by_index(input_idx)['name'])
-        stream = p.open(format=FORMAT, channels=1, rate=RATE, input=True, start=False, input_device_index=input_idx, output=False, frames_per_buffer=CHUNK_SIZE)
+        stream = p.open(format=FORMAT, channels=1, rate=speech_detector.rate, input=True, start=False, input_device_index=input_idx, output=False, frames_per_buffer=speech_detector.chunk_size)
     except IOError:
         rospy.logerr("Invalid device ID. Available devices listed in rosparam /ros_speech2text/available_audio_device")
         p.terminate()
@@ -176,18 +172,18 @@ def main():
     """
     thread.start_new_thread(check_operation, (pub_text, pub_screen))
 
-
     """
     Main loop for fetching audio and making operation requests.
     """
     while not rospy.is_shutdown():
-        aud_data, start_time, end_time = get_next_utter(stream, MIN_AVG_VOLUME, pub_screen)
+        aud_data, start_time, end_time = speech_detector.get_next_utter(
+            stream, MIN_AVG_VOLUME, pub_screen)
         if aud_data is None:
             rospy.loginfo("Node terminating")
             break
-        record_to_file(sample_width, aud_data, sn)
+        record_to_file(sample_width, aud_data, sn, speech_detector.rate)
         context = rospy.get_param('/ros_speech2text/speech_context', [])
-        operation = recog(speech_client, sn, context)
+        operation = recog(speech_client, sn, context, speech_detector.rate)
         OPERATION_QUEUE.append([operation, start_time, end_time])
         sn += 1
 
