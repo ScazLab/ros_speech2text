@@ -134,6 +134,41 @@ class SpeechDetector:
             chunk_size = rate // 10
         self.chunk_size = chunk_size
         self.dyn_thr_frame = dynamic_threshold_frame
+        self.reset()
+
+    def reset(self):
+        self.silence_detect.reset_average()
+        self.n_silent = 0
+        self.n_peaks = 0
+        self.chunks = []
+        self.in_utterance = False
+        self.start_time = None
+
+    def treat_chunk(self, chunk):
+        silent = self.silence_detect.is_silent(chunk)
+        self.silence_detect.update_average(chunk)
+        # Print average for dynamic threshold
+        # TODO: should be a debug
+        if not self.silence_detect.is_static:
+            rospy.loginfo("[AVG_VOLUME] " +
+                          str(self.silence_detect.average_volume))
+        if not silent and not self.in_utterance:
+            # Check whether to start collecting utterance
+            if not self.silence_detect.is_static:  # TODO: Why only for dynamic?
+                self.n_peaks += 1
+            if (self.silence_detect.is_static or
+                    self.n_peaks >= self.dyn_thr_frame):
+                self.in_utterance = True
+                rospy.logwarn('collecting audio segment')
+                self.start_time = rospy.get_rostime()
+        if self.in_utterance:
+            self.chunks.append(chunk)
+            if silent:
+                self.n_silent += 1
+
+    @property
+    def found(self):
+        return self.n_silent > 10
 
     def get_next_utter(self, stream, pub_screen):
         """
@@ -143,76 +178,32 @@ class SpeechDetector:
             min_avg_volume: helps thresholding in quiet environments
             pub_screen: publishes status messages to baxter screen
         """
-        num_silent = 0
-        snd_started = False
         stream.start_stream()  # TODO: Why not record during recognition
-        chunks = []
-        peak_count = 0
+        self.reset()
 
-        while True:
+        while not self.found:
             """
             main loop for audio capturing
             """
-            if snd_started:
+            if self.in_utterance:  # TODO: merge with other message
                 pub_screen.publish("Sentence Started")
+
             if rospy.is_shutdown():
                 return None, None, None
+
             snd_data = np.frombuffer(
                 stream.read(self.chunk_size, exception_on_overflow=False),
                 dtype=BUFFER_NP_TYPE)
-
-            # Static thresholding
-            if self.silence_detect.is_static:
-                chunks.append(snd_data)
-                silent = self.silence_detect.is_silent(snd_data)
-                if silent and snd_started:
-                    num_silent += 1
-                elif not silent and not snd_started:
-                    rospy.logwarn('collecting audio segment')
-                    snd_started = True
-                    start_time = rospy.get_rostime()
-                    num_silent = 0
-                if snd_started and num_silent > 10:
-                    rospy.logwarn('audio segment completed')
-                    break
-
-            else:  # Dynamic thresholding
-                # Calculate an average volume with a queue of ten previous frames
-                self.silence_detect.update_average(snd_data)
-
-                rospy.loginfo("[AVG_VOLUME] " +
-                              str(self.silence_detect.average_volume))
-
-                silent = self.silence_detect.is_silent(snd_data)
-
-                if silent and snd_started:
-                    chunks.append(snd_data)
-                    num_silent += 1
-                elif not silent and snd_started:
-                    chunks.append(snd_data)
-                elif silent and not snd_started:
-                    peak_count = 0
-                    chunks = []
-                elif not silent and not snd_started:
-                    if peak_count >= self.dyn_thr_frame:
-                        rospy.logwarn('collecting audio segment')
-                        chunks.append(snd_data)
-                        start_time = rospy.get_rostime()
-                        snd_started = True
-                        num_silent = 0
-                    else:
-                        peak_count += 1
-                        chunks.append(snd_data)
-                if snd_started and num_silent > 10:
-                    rospy.logwarn('audio segmend completed')
-                    chunks.append(snd_data)
-                    break
+            self.treat_chunk(snd_data)
 
         stream.stop_stream()
-        pub_screen.publish("Recognizing")
         end_time = rospy.get_rostime()
-        r = normalize(np.hstack(chunks))
+
+        rospy.logwarn('audio segment completed')
+        pub_screen.publish("Recognizing")
+
+        r = normalize(np.hstack(self.chunks))
         if self.silence_detect.is_static:
             r = self.silence_detect.trim(r)
         r = add_silence(r, self.rate, 0.5)
-        return r, start_time, end_time
+        return r, self.start_time, end_time
