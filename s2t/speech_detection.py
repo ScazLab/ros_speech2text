@@ -164,7 +164,6 @@ class SpeechDetector:
                     if peak_count >= self.dyn_thr_frame:
                         rospy.logwarn('collecting audio segment')
                         chunks.append(snd_data)
-                        start_frame = snd_data  # TODO remove
                         start_time = rospy.get_rostime()
                         snd_started = True
                         num_silent = 0
@@ -174,7 +173,6 @@ class SpeechDetector:
                 if snd_started and num_silent > 10:
                     rospy.logwarn('audio segmend completed')
                     chunks.append(snd_data)
-                    end_frame = snd_data  # TODO remove
                     break
 
         stream.stop_stream()
