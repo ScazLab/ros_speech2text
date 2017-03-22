@@ -1,30 +1,22 @@
-from sys import byteorder
-from array import array
-from builtins import range  # For py3 compatibility
+import numpy as np
 
 from .py23 import Queue
 
 import rospy
 
 # TODO:
-#   - abstract rospy
-#   - switch from array to numpy
 #   - stream as constructor argument (or make a new class (generator?))
 
 
 NORMAL_MAXIMUM = 16384
+BUFFER_NP_TYPE = '<i2'  # little endian, signed short
 
 
 def normalize(snd_data):
+    """Average the volume out
     """
-    Average the volume out
-    """
-    times = float(NORMAL_MAXIMUM) / max(abs(i) for i in snd_data)
-
-    r = array('h')
-    for i in snd_data:
-        r.append(int(i * times))
-    return r
+    r = snd_data * NORMAL_MAXIMUM / np.abs(snd_data).max()
+    return r.astype(snd_data.dtype)
 
 
 def add_silence(snd_data, rate, seconds):
@@ -32,11 +24,8 @@ def add_silence(snd_data, rate, seconds):
     Add silence to the start and end of 'snd_data' of length 'seconds' (float)
     This prevents some players from skipping the first few frames.
     """
-    n_zeros = int(seconds * rate)
-    r = array('h', [0 for i in range(n_zeros)])
-    r.extend(snd_data)
-    r.extend([0 for i in range(n_zeros)])
-    return r
+    zeros = np.zeros((int(seconds * rate),), dtype=snd_data.dtype)
+    return np.hstack([zeros, snd_data, zeros])
 
 
 class SpeechDetector:
@@ -88,31 +77,18 @@ class SpeechDetector:
         Returns 'True' if all the data is below the 'silent' threshold.
         """
         self.log(max(snd_data))
-        return max(snd_data) < self.threshold
+        return snd_data.max() < self.threshold
 
     def trim(self, start, end, snd_data):
         """
         This function is not used in dynamic thresholding.
         Trim the blank spots at the start and end.
         """
-        def _trim(snd_data):
-            snd_started = False
-            r = array('h')
-            for i in snd_data:
-                if not snd_started and abs(i) > self.thr:
-                    snd_started = True
-                    r.append(i)
-                elif snd_started:
-                    r.append(i)
-            return r
-
-        # Trim to the left
-        snd_data = _trim(snd_data)
-        # Trim to the right
-        snd_data.reverse()
-        snd_data = _trim(snd_data)
-        snd_data.reverse()
-        return snd_data
+        non_silent = (np.abs(snd_data) <= self.thr).nonzero()[0]
+        if len(non_silent) == 0:
+            return snd_data[0:0]  # Empty array
+        else:
+            return snd_data[non_silent[0]:non_silent[-1]]
 
     def get_next_utter(self, stream, min_avg_volume, pub_screen):
         """
@@ -124,8 +100,8 @@ class SpeechDetector:
         """
         num_silent = 0
         snd_started = False
-        stream.start_stream()  # TODO: should not happen here
-        r = array('h')
+        stream.start_stream()  # TODO: Why not record during recognition
+        chunks = []
         peak_count = 0
         avg_volume = 0
         volume_queue = Queue(10)
@@ -140,14 +116,13 @@ class SpeechDetector:
                 pub_screen.publish("Sentence Started")
             if rospy.is_shutdown():
                 return None, None, None
-            # little endian, signed short
-            snd_data = array('h', stream.read(self.chunk_size, exception_on_overflow=False))
-            if byteorder == 'big':
-                snd_data.byteswap()
+            snd_data = np.frombuffer(
+                stream.read(self.chunk_size, exception_on_overflow=False),
+                dtype=BUFFER_NP_TYPE)
 
             # Static thresholding
             if not self.dyn_thr:
-                r.extend(snd_data)
+                chunks.append(snd_data)
                 silent = self.is_silent(snd_data)
                 if silent and snd_started:
                     num_silent += 1
@@ -178,34 +153,34 @@ class SpeechDetector:
                 silent = self.is_silent(snd_data)
 
                 if silent and snd_started:
-                    r.extend(snd_data)
+                    chunks.append(snd_data)
                     num_silent += 1
                 elif not silent and snd_started:
-                    r.extend(snd_data)
+                    chunks.append(snd_data)
                 elif silent and not snd_started:
                     peak_count = 0
-                    r = array('h')
+                    chunks = []
                 elif not silent and not snd_started:
                     if peak_count >= self.dyn_thr_frame:
                         rospy.logwarn('collecting audio segment')
-                        r.extend(snd_data)
+                        chunks.append(snd_data)
                         start_frame = snd_data  # TODO remove
                         start_time = rospy.get_rostime()
                         snd_started = True
                         num_silent = 0
                     else:
                         peak_count += 1
-                        r.extend(snd_data)
+                        chunks.append(snd_data)
                 if snd_started and num_silent > 10:
                     rospy.logwarn('audio segmend completed')
-                    r.extend(snd_data)
+                    chunks.append(snd_data)
                     end_frame = snd_data  # TODO remove
                     break
 
         stream.stop_stream()
         pub_screen.publish("Recognizing")
         end_time = rospy.get_rostime()
-        r = normalize(r)
+        r = normalize(np.hstack(chunks))
         if not self.dyn_thr:
             r = self.trim(r)
         r = add_silence(r, self.rate, 0.5)
