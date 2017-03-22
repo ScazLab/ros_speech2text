@@ -1,6 +1,6 @@
 import numpy as np
 
-from .py23 import Queue
+from collections import deque
 
 import rospy
 
@@ -46,6 +46,12 @@ class SilenceDetector(object):
         """
         raise NotImplementedError
 
+    def reset_average(self):
+        pass
+
+    def update_average(self, chunk):
+        pass
+
 
 class StaticSilenceDetector(SilenceDetector):
 
@@ -71,16 +77,33 @@ class DynamicSilenceDetector(SilenceDetector):
 
     is_static = False
 
-    def __init__(self, rate, dynamic_threshold_percentage=50):
+    def __init__(self, rate, dynamic_threshold_percentage=50,
+                 min_average_volume=1., n_average=10):
         self.rate = rate
         self.dyn_thr_ratio = dynamic_threshold_percentage / 100.
-        # TODO improve
-        self.avg_volume = None
+        self.min_avg = min_average_volume
+        self._vol_q = deque([], maxlen=n_average)
+        self.reset_average()
+
+    @property
+    def average_volume(self):
+        if len(self._vol_q) == 0:
+            return self.min_avg
+        else:
+            return max(self.min_avg, sum(self._vol_q) * 1. / len(self._vol_q))
+
+    def reset_average(self):
+        self._vol_q.clear()
+        # Note: storing the sum and incrementing/decrementing on update
+        # would be more efficient but this is simpler for now.
+
+    def update_average(self, chunk):
+        self._vol_q.append(max(chunk))
 
     @property
     def threshold(self):
         """(100+x)% louder than the avg volume."""
-        return self.avg_volume * (1 + self.dyn_thr_ratio)
+        return self.average_volume * (1 + self.dyn_thr_ratio)
 
 
 class SpeechDetector:
@@ -100,9 +123,11 @@ class SpeechDetector:
     """
 
     def __init__(self, rate, threshold, dynamic_threshold=False,
-                 dynamic_threshold_frame=3, chunk_size=None):
+                 dynamic_threshold_frame=3, chunk_size=None,
+                 min_average_volume=0.):
         if dynamic_threshold:
-            self.silence_detect = DynamicSilenceDetector(rate, threshold)
+            self.silence_detect = DynamicSilenceDetector(
+                rate, threshold, min_average_volume=min_average_volume)
         else:
             self.silence_detect = StaticSilenceDetector(rate, threshold)
         if chunk_size is None:
@@ -110,7 +135,7 @@ class SpeechDetector:
         self.chunk_size = chunk_size
         self.dyn_thr_frame = dynamic_threshold_frame
 
-    def get_next_utter(self, stream, min_avg_volume, pub_screen):
+    def get_next_utter(self, stream, pub_screen):
         """
         Main function for capturing audio.
         Parameters:
@@ -123,10 +148,6 @@ class SpeechDetector:
         stream.start_stream()  # TODO: Why not record during recognition
         chunks = []
         peak_count = 0
-        avg_volume = 0
-        volume_queue = Queue(10)
-        volume_sum = 0
-        q_size = 0
 
         while True:
             """
@@ -157,19 +178,11 @@ class SpeechDetector:
 
             else:  # Dynamic thresholding
                 # Calculate an average volume with a queue of ten previous frames
-                if volume_queue.full():
-                    out = volume_queue.get()
-                    volume_sum -= out
-                    q_size -= 1
-                if not volume_queue.full() and peak_count == 0:
-                    volume_queue.put(max(snd_data))
-                    volume_sum += max(snd_data)
-                    q_size += 1
-                avg_volume = max(volume_sum / q_size, min_avg_volume)
+                self.silence_detect.update_average(snd_data)
 
-                rospy.loginfo("[AVG_VOLUME] " + str(avg_volume))
+                rospy.loginfo("[AVG_VOLUME] " +
+                              str(self.silence_detect.average_volume))
 
-                self.silence_detect.avg_volume = avg_volume
                 silent = self.silence_detect.is_silent(snd_data)
 
                 if silent and snd_started:

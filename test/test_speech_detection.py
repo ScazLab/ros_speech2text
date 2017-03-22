@@ -38,16 +38,10 @@ class TestAddSilence(TestCase):
     pass
 
 
-class TestSilenceDetector(TestCase):
+class TestStaticSilenceDetector(TestCase):
 
     def test_silent_is_silent(self):
         sd = StaticSilenceDetector(100, 1.)
-        a = np.array([0, 0, 0, 0, 0], dtype=np.int16)
-        self.assertTrue(sd.is_silent(a))
-
-    def test_silent_is_silent_dynamic(self):
-        sd = DynamicSilenceDetector(100)
-        sd.avg_volume = 1.  # TODO change
         a = np.array([0, 0, 0, 0, 0], dtype=np.int16)
         self.assertTrue(sd.is_silent(a))
 
@@ -56,14 +50,44 @@ class TestSilenceDetector(TestCase):
         a = np.array([0, 0, 2, 0, 0], dtype=np.int16)
         self.assertFalse(sd.is_silent(a))
 
+
+class TestDynamicSilenceDetector(TestCase):
+
+    def test_silent_is_silent_dynamic(self):
+        sd = DynamicSilenceDetector(100, min_average_volume=1.)
+        a = np.array([0, 0, 0, 0, 0], dtype=np.int16)
+        self.assertTrue(sd.is_silent(a))
+
+    def test_average_volume_is_min_on_empty(self):
+        sd = DynamicSilenceDetector(100, 50., min_average_volume=.1)
+        self.assertEqual(sd.average_volume, .1)
+
+    def test_average_volume_is_not_min(self):
+        sd = DynamicSilenceDetector(100, 50., min_average_volume=.1)
+        sd.update_average(np.array([0, 1], dtype=np.int16))
+        sd.update_average(np.array([0, 0], dtype=np.int16))
+        self.assertEqual(sd.average_volume, .5)
+
     def test_above_static_but_not_dynamic(self):
         sd = DynamicSilenceDetector(100, 50.)
-        sd.avg_volume = 1.5
+        sd.update_average(np.array([1], dtype=np.int16))
+        sd.update_average(np.array([2], dtype=np.int16))
+        # Hence sd.avg_volume == 1.5
         a = np.array([0, 0, 2, 0, 0], dtype=np.int16)
         self.assertTrue(sd.is_silent(a))
 
     def test_above_dynamic_but_not_static(self):
         sd = DynamicSilenceDetector(100, 50.)
-        sd.avg_volume = 1.
+        sd.update_average(np.array([1], dtype=np.int16))
+        sd.update_average(np.array([1], dtype=np.int16))
+        # Hence sd.avg_volume == 1
         a = np.array([0, 0, 2, 0, 0], dtype=np.int16)
         self.assertFalse(sd.is_silent(a))
+
+    def test_reset_average(self):
+        sd = DynamicSilenceDetector(100, 50., min_average_volume=1.5)
+        sd.update_average(np.array([2], dtype=np.int16))
+        sd.update_average(np.array([2], dtype=np.int16))
+        # Hence sd.avg_volume == 2
+        sd.reset_average()
+        self.assertEqual(sd.average_volume, 1.5)

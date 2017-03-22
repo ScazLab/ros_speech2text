@@ -127,19 +127,22 @@ def main():
     rospy.init_node('speech2text_engine', anonymous=True)
 
     rate = rospy.get_param('/ros_speech2text/audio_rate', 16000)
+    dynamic_thresholding = rospy.get_param('/ros_speech2text/enable_dynamic_threshold', False)
+    if dynamic_thresholding:
+        threshold = rospy.get_param('/ros_speech2text/audio_threshold', 700)
+    else:
+        threshold = rospy.get_param('/ros_speech2text/audio_dynamic_percentage', 50)
     speech_detector = SpeechDetector(
         rate,
-        rospy.get_param('/ros_speech2text/audio_threshold', 700),
-        dynamic_threshold=rospy.get_param('/ros_speech2text/enable_dynamic_threshold', False),
-        dynamic_threshold_percentage=rospy.get_param('/ros_speech2text/audio_dynamic_percentage', 50),
+        threshold,
+        dynamic_threshold=dynamic_thresholding,
         dynamic_threshold_frame=rospy.get_param('/ros_speech2text/audio_dynamic_frame', 3),
-        logger=rospy.loginfo,
+        min_average_volume=rospy.get_param('/ros_speech2text/audio_min_avg', 100),
     )
 
     SPEECH_HISTORY_DIR = rospy.get_param('/ros_speech2text/speech_history', '~/.ros/ros_speech2text/speech_history')
     SPEECH_HISTORY_DIR = expand_dir(SPEECH_HISTORY_DIR)
     input_idx = rospy.get_param('/ros_speech2text/audio_device_idx', None)
-    MIN_AVG_VOLUME = rospy.get_param('/ros_speech2text/audio_min_avg', 100)
 
     """
     Set up PyAudio client, and fetch all available devices
@@ -154,7 +157,7 @@ def main():
 
     try:
         rospy.loginfo("Using device: " + p.get_device_info_by_index(input_idx)['name'])
-        stream = p.open(format=FORMAT, channels=1, rate=speech_detector.rate,
+        stream = p.open(format=FORMAT, channels=1, rate=rate,
                         input=True, start=False, input_device_index=input_idx,
                         output=False,
                         frames_per_buffer=speech_detector.chunk_size * 10)
@@ -178,7 +181,7 @@ def main():
     """
     while not rospy.is_shutdown():
         aud_data, start_time, end_time = speech_detector.get_next_utter(
-            stream, MIN_AVG_VOLUME, pub_screen)
+            stream, pub_screen)
         if aud_data is None:
             rospy.loginfo("Node terminating")
             break
