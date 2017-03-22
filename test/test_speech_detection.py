@@ -2,7 +2,9 @@ from unittest import TestCase
 
 import numpy as np
 
-from s2t.speech_detection import SpeechDetector, normalize, NORMAL_MAXIMUM
+from s2t.speech_detection import (StaticSilenceDetector,
+                                  DynamicSilenceDetector,
+                                  normalize, NORMAL_MAXIMUM)
 
 
 class TestNormalize(TestCase):
@@ -36,34 +38,32 @@ class TestAddSilence(TestCase):
     pass
 
 
-class TestSpeechDetector(TestCase):
+class TestSilenceDetector(TestCase):
 
     def test_silent_is_silent(self):
-        sd = SpeechDetector(100, 1.)
+        sd = StaticSilenceDetector(100, 1.)
         a = np.array([0, 0, 0, 0, 0], dtype=np.int16)
         self.assertTrue(sd.is_silent(a))
 
     def test_silent_is_silent_dynamic(self):
-        sd = SpeechDetector(100, 1., dynamic_threshold=True)
+        sd = DynamicSilenceDetector(100)
         sd.avg_volume = 1.  # TODO change
         a = np.array([0, 0, 0, 0, 0], dtype=np.int16)
         self.assertTrue(sd.is_silent(a))
 
     def test_above_static(self):
-        sd = SpeechDetector(100, 1.)
+        sd = StaticSilenceDetector(100, 1.)
         a = np.array([0, 0, 2, 0, 0], dtype=np.int16)
         self.assertFalse(sd.is_silent(a))
 
     def test_above_static_but_not_dynamic(self):
-        sd = SpeechDetector(100, 1., dynamic_threshold=True,
-                            dynamic_threshold_percentage=50.)
+        sd = DynamicSilenceDetector(100, 50.)
         sd.avg_volume = 1.5
         a = np.array([0, 0, 2, 0, 0], dtype=np.int16)
         self.assertTrue(sd.is_silent(a))
 
     def test_above_dynamic_but_not_static(self):
-        sd = SpeechDetector(100, 3., dynamic_threshold=True,
-                            dynamic_threshold_percentage=50.)
+        sd = DynamicSilenceDetector(100, 50.)
         sd.avg_volume = 1.
         a = np.array([0, 0, 2, 0, 0], dtype=np.int16)
         self.assertFalse(sd.is_silent(a))

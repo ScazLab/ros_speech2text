@@ -28,56 +28,32 @@ def add_silence(snd_data, rate, seconds):
     return np.hstack([zeros, snd_data, zeros])
 
 
-class SpeechDetector:
+class SilenceDetector(object):
+    """Should implement a threshold property.
     """
-    Dynamic thresholding:
-        Before audio is being considered part of a sentence, peak_count
-        is used to count how many consecutive frames have been above the
-        dynamic threshold volume. Once peak_count is over the specified
-        frame number from ros param, we consider the sentence started and
-        lock the value of avg volume to maintain the standard thresholding
-        standard throughout the sentence. Whenever receiving a frame that
-        has volume that is too low, we increase num_silent. When num_silent
-        exceeds ten, we consider the sentence finished.
-    """
-
-    def __init__(self, rate, threshold, dynamic_threshold=False,
-                 dynamic_threshold_percentage=50,
-                 dynamic_threshold_frame=3,
-                 chunk_size=None, logger=None):
-        self.rate = rate
-        self.thr = threshold
-        self.dyn_thr = dynamic_threshold
-        self.dyn_thr_ratio = dynamic_threshold_percentage / 100.
-        self.dyn_thr_frame = dynamic_threshold_frame
-        if chunk_size is None:
-            chunk_size = rate // 10
-        self.chunk_size = chunk_size
-        if logger is not None:
-            self.log = logger
-        # TODO improve
-        self.avg_volume = None
-
-    def log(self, msg):
-        pass
-
-    @property
-    def threshold(self):
-        """
-        Constant threshold for static thresholding.
-        For dynamic thresholding, (100+x)% louder than the avg volume.
-        """
-        if self.dyn_thr:
-            return self.avg_volume * (1 + self.dyn_thr_ratio)
-        else:
-            return self.thr
 
     def is_silent(self, snd_data):
         """
         Returns 'True' if all the data is below the 'silent' threshold.
         """
-        self.log(max(snd_data))
+        rospy.loginfo(max(snd_data))
         return snd_data.max() < self.threshold
+
+    def trim(self, start, end, snd_data):
+        """
+        This function is not used in dynamic thresholding.
+        Trim the blank spots at the start and end.
+        """
+        raise NotImplementedError
+
+
+class StaticSilenceDetector(SilenceDetector):
+
+    is_static = True
+
+    def __init__(self, rate, threshold):
+        self.rate = rate
+        self.threshold = threshold
 
     def trim(self, start, end, snd_data):
         """
@@ -89,6 +65,50 @@ class SpeechDetector:
             return snd_data[0:0]  # Empty array
         else:
             return snd_data[non_silent[0]:non_silent[-1]]
+
+
+class DynamicSilenceDetector(SilenceDetector):
+
+    is_static = False
+
+    def __init__(self, rate, dynamic_threshold_percentage=50):
+        self.rate = rate
+        self.dyn_thr_ratio = dynamic_threshold_percentage / 100.
+        # TODO improve
+        self.avg_volume = None
+
+    @property
+    def threshold(self):
+        """(100+x)% louder than the avg volume."""
+        return self.avg_volume * (1 + self.dyn_thr_ratio)
+
+
+class SpeechDetector:
+    """
+    Dynamic thresholding:
+        Before audio is being considered part of a sentence, peak_count
+        is used to count how many consecutive frames have been above the
+        dynamic threshold volume. Once peak_count is over the specified
+        frame number from ros param, we consider the sentence started and
+        lock the value of avg volume to maintain the standard thresholding
+        standard throughout the sentence. Whenever receiving a frame that
+        has volume that is too low, we increase num_silent. When num_silent
+        exceeds ten, we consider the sentence finished.
+
+    :param threshold: float
+        Static or dynamic threshold. Interpreted as a percentage when dynamic.
+    """
+
+    def __init__(self, rate, threshold, dynamic_threshold=False,
+                 dynamic_threshold_frame=3, chunk_size=None):
+        if dynamic_threshold:
+            self.silence_detect = DynamicSilenceDetector(rate, threshold)
+        else:
+            self.silence_detect = StaticSilenceDetector(rate, threshold)
+        if chunk_size is None:
+            chunk_size = rate // 10
+        self.chunk_size = chunk_size
+        self.dyn_thr_frame = dynamic_threshold_frame
 
     def get_next_utter(self, stream, min_avg_volume, pub_screen):
         """
@@ -121,9 +141,9 @@ class SpeechDetector:
                 dtype=BUFFER_NP_TYPE)
 
             # Static thresholding
-            if not self.dyn_thr:
+            if self.silence_detect.is_static:
                 chunks.append(snd_data)
-                silent = self.is_silent(snd_data)
+                silent = self.silence_detect.is_silent(snd_data)
                 if silent and snd_started:
                     num_silent += 1
                 elif not silent and not snd_started:
@@ -149,8 +169,8 @@ class SpeechDetector:
 
                 rospy.loginfo("[AVG_VOLUME] " + str(avg_volume))
 
-                self.avg_volume = avg_volume
-                silent = self.is_silent(snd_data)
+                self.silence_detect.avg_volume = avg_volume
+                silent = self.silence_detect.is_silent(snd_data)
 
                 if silent and snd_started:
                     chunks.append(snd_data)
@@ -179,7 +199,7 @@ class SpeechDetector:
         pub_screen.publish("Recognizing")
         end_time = rospy.get_rostime()
         r = normalize(np.hstack(chunks))
-        if not self.dyn_thr:
-            r = self.trim(r)
+        if self.silence_detect.is_static:
+            r = self.silence_detect.trim(r)
         r = add_silence(r, self.rate, 0.5)
         return r, start_time, end_time
