@@ -4,9 +4,6 @@ from collections import deque
 
 import rospy
 
-# TODO:
-#   - stream as constructor argument (or make a new class (generator?))
-
 
 NORMAL_MAXIMUM = 16384
 BUFFER_NP_TYPE = '<i2'  # little endian, signed short
@@ -20,17 +17,22 @@ def normalize(snd_data):
 
 
 def add_silence(snd_data, rate, seconds):
-    """
-    Add silence to the start and end of 'snd_data' of length 'seconds' (float)
+    """Adds silence of given length to the start and end of a chunk.
+
     This prevents some players from skipping the first few frames.
+    :param snd_data: numpy array
+        sound chunk
+    :param rate: int
+        sampling rate
+    :param seconds: float
+        length of the silence to add
     """
     zeros = np.zeros((int(seconds * rate),), dtype=snd_data.dtype)
     return np.hstack([zeros, snd_data, zeros])
 
 
 class SilenceDetector(object):
-    """Should implement a threshold property.
-    """
+    """Implements silence detection on chunks of sound."""
 
     def is_silent(self, snd_data):
         """
@@ -40,10 +42,7 @@ class SilenceDetector(object):
         return snd_data.max() < self.threshold
 
     def trim(self, start, end, snd_data):
-        """
-        This function is not used in dynamic thresholding.
-        Trim the blank spots at the start and end.
-        """
+        """Trim the blank spots at the start and end."""
         raise NotImplementedError
 
     def reset_average(self):
@@ -62,10 +61,6 @@ class StaticSilenceDetector(SilenceDetector):
         self.threshold = threshold
 
     def trim(self, start, end, snd_data):
-        """
-        This function is not used in dynamic thresholding.
-        Trim the blank spots at the start and end.
-        """
         non_silent = (np.abs(snd_data) <= self.thr).nonzero()[0]
         if len(non_silent) == 0:
             return snd_data[0:0]  # Empty array
