@@ -120,13 +120,14 @@ class SpeechDetector:
     def __init__(self, rate, threshold, dynamic_threshold=False,
                  dynamic_threshold_frame=3, chunk_size=None,
                  min_average_volume=0.):
+        self.rate = rate
         if dynamic_threshold:
             self.silence_detect = DynamicSilenceDetector(
-                rate, threshold, min_average_volume=min_average_volume)
+                self.rate, threshold, min_average_volume=min_average_volume)
         else:
-            self.silence_detect = StaticSilenceDetector(rate, threshold)
+            self.silence_detect = StaticSilenceDetector(self.rate, threshold)
         if chunk_size is None:
-            chunk_size = rate // 10
+            chunk_size = self.rate // 10
         self.chunk_size = chunk_size
         self.dyn_thr_frame = dynamic_threshold_frame
         self.reset()
