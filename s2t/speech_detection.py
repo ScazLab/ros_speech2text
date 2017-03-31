@@ -38,8 +38,8 @@ class SilenceDetector(object):
         """
         Returns 'True' if all the data is below the 'silent' threshold.
         """
-        rospy.loginfo(max(snd_data))
-        return snd_data.max() < self.threshold
+        rospy.loginfo(max(np.abs(snd_data)))
+        return np.abs(snd_data).max() < self.threshold
 
     def trim(self, snd_data):
         """Trim the blank spots at the start and end."""
@@ -93,7 +93,7 @@ class DynamicSilenceDetector(SilenceDetector):
         # would be more efficient but this is simpler for now.
 
     def update_average(self, chunk):
-        self._vol_q.append(max(chunk))
+        self._vol_q.append(max(np.abs(chunk)))
 
     @property
     def threshold(self):
