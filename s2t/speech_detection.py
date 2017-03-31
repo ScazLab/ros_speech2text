@@ -41,7 +41,7 @@ class SilenceDetector(object):
         rospy.loginfo(max(snd_data))
         return snd_data.max() < self.threshold
 
-    def trim(self, start, end, snd_data):
+    def trim(self, snd_data):
         """Trim the blank spots at the start and end."""
         raise NotImplementedError
 
@@ -60,8 +60,8 @@ class StaticSilenceDetector(SilenceDetector):
         self.rate = rate
         self.threshold = threshold
 
-    def trim(self, start, end, snd_data):
-        non_silent = (np.abs(snd_data) <= self.thr).nonzero()[0]
+    def trim(self, snd_data):
+        non_silent = (np.abs(snd_data) <= self.threshold).nonzero()[0]
         if len(non_silent) == 0:
             return snd_data[0:0]  # Empty array
         else:
