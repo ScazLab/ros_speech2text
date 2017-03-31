@@ -12,7 +12,7 @@ BUFFER_NP_TYPE = '<i2'  # little endian, signed short
 def normalize(snd_data):
     """Average the volume out
     """
-    r = snd_data * NORMAL_MAXIMUM / np.abs(snd_data).max()
+    r = snd_data * (NORMAL_MAXIMUM * 1. / max(1, np.abs(snd_data).max()))
     return r.astype(snd_data.dtype)
 
 
