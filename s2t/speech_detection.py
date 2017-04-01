@@ -38,7 +38,7 @@ class SilenceDetector(object):
         """
         Returns 'True' if all the data is below the 'silent' threshold.
         """
-        rospy.loginfo(max(snd_data))
+        # rospy.loginfo(max(snd_data))
         return snd_data.max() < self.threshold
 
     def trim(self, start, end, snd_data):
@@ -145,8 +145,8 @@ class SpeechDetector:
         # Print average for dynamic threshold
         # TODO: should be a debug
         if not self.silence_detect.is_static:
-            rospy.loginfo("[AVG_VOLUME] " +
-                          str(self.silence_detect.average_volume))
+            rospy.loginfo("[AVG_VOLUME,VOLUME] = " +
+                          str(self.silence_detect.average_volume) + " , "+ str(chunk.max()))
         if not silent and not self.in_utterance:
             # Check whether to start collecting utterance
             if not self.silence_detect.is_static:  # TODO: Why only for dynamic?
@@ -165,7 +165,7 @@ class SpeechDetector:
     def found(self):
         return self.n_silent > 10
 
-    def get_next_utter(self, stream, pub_screen):
+    def get_next_utter(self, stream, start_callback, end_callback):
         """
         Main function for capturing audio.
         Parameters:
@@ -181,7 +181,8 @@ class SpeechDetector:
             main loop for audio capturing
             """
             if self.in_utterance:  # TODO: merge with other message
-                pub_screen.publish("Sentence Started")
+                # pub_screen.publish("Sentence Started")
+                start_callback()
 
             if rospy.is_shutdown():
                 return None, None, None
@@ -194,8 +195,9 @@ class SpeechDetector:
         stream.stop_stream()
         end_time = rospy.get_rostime()
 
-        rospy.logwarn('audio segment completed')
-        pub_screen.publish("Recognizing")
+        # rospy.logwarn('audio segment completed')
+        # pub_screen.publish("Recognizing")
+        end_callback()
 
         r = normalize(np.hstack(self.chunks))
         if self.silence_detect.is_static:

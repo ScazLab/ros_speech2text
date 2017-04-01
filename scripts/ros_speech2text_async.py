@@ -15,11 +15,11 @@ import sys
 import rospy
 import thread
 
-
 SPEECH_HISTORY_DIR = None
 FORMAT = pyaudio.paInt16
 run_flag = True
 OPERATION_QUEUE = []
+pub_screen = None
 
 
 def recog(speech_client, sn, context, rate):
@@ -78,7 +78,7 @@ def check_operation(pub_text, pub_screen):
     """
     global OPERATION_QUEUE
     while not rospy.is_shutdown():
-        rospy.loginfo("check operation results")
+        # rospy.loginfo("check operation results")
         for op in OPERATION_QUEUE[:]:
             if op[0].complete:
                 for result in op[0].results:
@@ -115,11 +115,22 @@ def cleanup():
             rospy.logerr(e)
     os.rmdir(speech_directory)
 
+def utterance_start():
+    # pass
+    # rospy.loginfo('utterance_start')
+    pub_screen.publish("Sentence Started")
+
+def utterance_end():
+    # pass
+    rospy.logwarn('audio segment completed')
+    pub_screen.publish("Recognizing")
+
 
 def main():
     global SPEECH_HISTORY_DIR
     global FORMAT
     global OPERATION_QUEUE
+    global pub_screen
 
     # Setting up ros params
     pub_text = rospy.Publisher('/ros_speech2text/user_output', transcript, queue_size=10)
@@ -181,7 +192,7 @@ def main():
     """
     while not rospy.is_shutdown():
         aud_data, start_time, end_time = speech_detector.get_next_utter(
-            stream, pub_screen)
+            stream, utterance_start,utterance_end)
         if aud_data is None:
             rospy.loginfo("Node terminating")
             break
