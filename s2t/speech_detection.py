@@ -12,7 +12,7 @@ BUFFER_NP_TYPE = '<i2'  # little endian, signed short
 def normalize(snd_data):
     """Average the volume out
     """
-    r = snd_data * NORMAL_MAXIMUM / np.abs(snd_data).max()
+    r = snd_data * (NORMAL_MAXIMUM * 1. / max(1, np.abs(snd_data).max()))
     return r.astype(snd_data.dtype)
 
 
@@ -38,10 +38,9 @@ class SilenceDetector(object):
         """
         Returns 'True' if all the data is below the 'silent' threshold.
         """
-        # rospy.loginfo(max(snd_data))
-        return snd_data.max() < self.threshold
+        return np.abs(snd_data).max() < self.threshold
 
-    def trim(self, start, end, snd_data):
+    def trim(self, snd_data):
         """Trim the blank spots at the start and end."""
         raise NotImplementedError
 
@@ -60,8 +59,8 @@ class StaticSilenceDetector(SilenceDetector):
         self.rate = rate
         self.threshold = threshold
 
-    def trim(self, start, end, snd_data):
-        non_silent = (np.abs(snd_data) <= self.thr).nonzero()[0]
+    def trim(self, snd_data):
+        non_silent = (np.abs(snd_data) <= self.threshold).nonzero()[0]
         if len(non_silent) == 0:
             return snd_data[0:0]  # Empty array
         else:
@@ -93,7 +92,7 @@ class DynamicSilenceDetector(SilenceDetector):
         # would be more efficient but this is simpler for now.
 
     def update_average(self, chunk):
-        self._vol_q.append(max(chunk))
+        self._vol_q.append(max(np.abs(chunk)))
 
     @property
     def threshold(self):
@@ -120,13 +119,14 @@ class SpeechDetector:
     def __init__(self, rate, threshold, dynamic_threshold=False,
                  dynamic_threshold_frame=3, chunk_size=None,
                  min_average_volume=0.):
+        self.rate = rate
         if dynamic_threshold:
             self.silence_detect = DynamicSilenceDetector(
-                rate, threshold, min_average_volume=min_average_volume)
+                self.rate, threshold, min_average_volume=min_average_volume)
         else:
-            self.silence_detect = StaticSilenceDetector(rate, threshold)
+            self.silence_detect = StaticSilenceDetector(self.rate, threshold)
         if chunk_size is None:
-            chunk_size = rate // 10
+            chunk_size = self.rate // 10
         self.chunk_size = chunk_size
         self.dyn_thr_frame = dynamic_threshold_frame
         self.reset()
@@ -146,7 +146,7 @@ class SpeechDetector:
         # TODO: should be a debug
         if not self.silence_detect.is_static:
             rospy.loginfo("[AVG_VOLUME,VOLUME] = " +
-                          str(self.silence_detect.average_volume) + " , "+ str(chunk.max()))
+                          str(self.silence_detect.average_volume) + " , "+ str(max(np.abs(chunk))))
         if not silent and not self.in_utterance:
             # Check whether to start collecting utterance
             if not self.silence_detect.is_static:  # TODO: Why only for dynamic?
