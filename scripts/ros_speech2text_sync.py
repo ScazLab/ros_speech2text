@@ -15,6 +15,7 @@ import rospy
 import signal
 import sys
 import Queue
+import csv
 
 # Audio recording parameters
 # RATE = 16000
@@ -196,20 +197,32 @@ def record_to_file(sample_width, data, sn):
     wf.close()
     rospy.loginfo('file saved')
 
-def expand_dir(SPEECH_HISTORY_DIR):
-    if SPEECH_HISTORY_DIR[0]=='~':
-        SPEECH_HISTORY_DIR = os.getenv("HOME") + SPEECH_HISTORY_DIR[1:]
-    if not os.path.isdir(SPEECH_HISTORY_DIR):
-        os.makedirs(SPEECH_HISTORY_DIR)
-    return SPEECH_HISTORY_DIR
+# def expand_dir(SPEECH_HISTORY_DIR):
+#     if SPEECH_HISTORY_DIR[0]=='~':
+#         SPEECH_HISTORY_DIR = os.getenv("HOME") + SPEECH_HISTORY_DIR[1:]
+#     if not os.path.isdir(SPEECH_HISTORY_DIR):
+#         os.makedirs(SPEECH_HISTORY_DIR)
+#     return SPEECH_HISTORY_DIR
+
+def expand_dir(speech_history_dir):
+    """
+    A function that expands directories so python can find the folder
+    """
+    speech_history_dir = os.path.expanduser(
+        os.path.join(speech_history_dir, str(os.getpid())))
+    if not os.path.isdir(speech_history_dir):
+        os.makedirs(speech_history_dir)
+    return speech_history_dir
 
 def sig_hand(signum, frame):
     global run_flag
     run_flag = False
     print("Stopping Recognition")
 
-# def hook():
-#     print("stopping")
+def write_record(transcript,writer):
+    global SPEECH_HISTORY_DIR
+    writer.writerow([rospy.get_rostime(),transcript])
+
 
 def main():
     global RATE
@@ -250,6 +263,9 @@ def main():
     # signal.signal(signal.SIGINT, sig_hand)
     sn = 0
 
+    csv_file = open(os.path.join(SPEECH_HISTORY_DIR,'transcript'),'wb')
+    writer = csv.writer(csv_file,delimiter=' ',)
+
     while not rospy.is_shutdown():
     # while run_flag:
         aud_data = get_next_utter(stream)
@@ -265,9 +281,11 @@ def main():
         if transcript:
             rospy.loginfo(transcript)
             pub.publish(transcript)
+            write_record(transcript,writer)
 
     stream.close()
     p.terminate()
+    csv_file.close()
 
 if __name__ == '__main__':
     main()

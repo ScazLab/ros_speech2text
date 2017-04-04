@@ -204,7 +204,7 @@ def main():
 
     stream.close()
     p.terminate()
-    cleanup()
+    # cleanup()
 
 
 if __name__ == '__main__':
