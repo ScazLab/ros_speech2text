@@ -139,18 +139,16 @@ def main():
     global pub_screen
 
     # Setting up ros params
-    pub_text = rospy.Publisher('/ros_speech2text/user_output', transcript, queue_size=10)
-    pub_screen = rospy.Publisher('/svox_tts/speech_output', String, queue_size=10)
     rospy.init_node('speech2text_engine', anonymous=True)
     node_name = rospy.get_name()
-
+    pub_text = rospy.Publisher(node_name+'/user_output', transcript, queue_size=10)
+    pub_screen = rospy.Publisher('/svox_tts/speech_output', String, queue_size=10)
     rate = rospy.get_param(node_name+'/audio_rate', 16000)
-    print rate
-    dynamic_thresholding = rospy.get_param('/ros_speech2text/enable_dynamic_threshold', False)
+    dynamic_thresholding = rospy.get_param(node_name+'/enable_dynamic_threshold', False)
     if dynamic_thresholding:
-        threshold = rospy.get_param('/ros_speech2text/audio_threshold', 700)
+        threshold = rospy.get_param(node_name+'/audio_threshold', 700)
     else:
-        threshold = rospy.get_param('/ros_speech2text/audio_dynamic_percentage', 50)
+        threshold = rospy.get_param(node_name+'/audio_dynamic_percentage', 50)
 
     SPEECH_HISTORY_DIR = rospy.get_param('/ros_speech2text/speech_history', '~/.ros/ros_speech2text/speech_history')
     SPEECH_HISTORY_DIR = expand_dir(SPEECH_HISTORY_DIR)
@@ -160,9 +158,9 @@ def main():
         rate,
         threshold,
         dynamic_threshold=dynamic_thresholding,
-        dynamic_threshold_frame=rospy.get_param('/ros_speech2text/audio_dynamic_frame', 3),
-        min_average_volume=rospy.get_param('/ros_speech2text/audio_min_avg', 100),
-        verbose=rospy.get_param('/ros_speech2text/verbose_mode', True)
+        dynamic_threshold_frame=rospy.get_param(node_name+'/audio_dynamic_frame', 3),
+        min_average_volume=rospy.get_param(node_name+'/audio_min_avg', 100),
+        verbose=rospy.get_param(node_name+'/verbosity', True)
     )
 
     """
@@ -211,7 +209,7 @@ def main():
             rospy.loginfo("Node terminating")
             break
         record_to_file(sample_width, aud_data, sn, speech_detector.rate)
-        context = rospy.get_param('/ros_speech2text/speech_context', [])
+        context = rospy.get_param(node_name+'/speech_context', [])
         operation = recog(speech_client, sn, context, speech_detector.rate)
         OPERATION_QUEUE.append([operation, start_time, end_time])
         sn += 1
