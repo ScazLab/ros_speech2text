@@ -142,8 +142,10 @@ def main():
     pub_text = rospy.Publisher('/ros_speech2text/user_output', transcript, queue_size=10)
     pub_screen = rospy.Publisher('/svox_tts/speech_output', String, queue_size=10)
     rospy.init_node('speech2text_engine', anonymous=True)
+    node_name = rospy.get_name()
 
-    rate = rospy.get_param('/ros_speech2text/audio_rate', 16000)
+    rate = rospy.get_param(node_name+'/audio_rate', 16000)
+    print rate
     dynamic_thresholding = rospy.get_param('/ros_speech2text/enable_dynamic_threshold', False)
     if dynamic_thresholding:
         threshold = rospy.get_param('/ros_speech2text/audio_threshold', 700)
@@ -152,7 +154,7 @@ def main():
 
     SPEECH_HISTORY_DIR = rospy.get_param('/ros_speech2text/speech_history', '~/.ros/ros_speech2text/speech_history')
     SPEECH_HISTORY_DIR = expand_dir(SPEECH_HISTORY_DIR)
-    input_idx = rospy.get_param('/ros_speech2text/audio_device_idx', None)
+    input_idx = rospy.get_param(node_name+'/audio_device_idx', None)
 
     speech_detector = SpeechDetector(
         rate,
