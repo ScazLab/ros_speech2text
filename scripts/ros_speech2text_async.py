@@ -14,6 +14,7 @@ import os
 import sys
 import rospy
 import thread
+import csv
 
 SPEECH_HISTORY_DIR = None
 FORMAT = pyaudio.paInt16
@@ -69,7 +70,7 @@ def expand_dir(speech_history_dir):
     return speech_history_dir
 
 
-def check_operation(pub_text, pub_screen):
+def check_operation(pub_text, pub_screen, writer):
     """
     This function is intended to be run as a seperate thread that repeatedly
     checks if any recog operation has finished.
@@ -92,6 +93,8 @@ def check_operation(pub_text, pub_screen):
                     rospy.logwarn("%s,confidence:%f" % (result.transcript, result.confidence))
                     pub_text.publish(msg)
                     pub_screen.publish(result.transcript)
+                    writer.writerow([msg.start_time,msg.end_time,msg.speech_duration,
+                        msg.transcript,msg.confidence])
                 OPERATION_QUEUE.remove(op)
             else:
                 try:
@@ -106,6 +109,9 @@ def cleanup():
     """
     Cleans up speech history directory after session ends
     """
+    cleanup=rospy.get_param('/ros_speech2text/cleanup', True)
+    if not cleanup:
+        return
     speech_directory = SPEECH_HISTORY_DIR
     for file in os.listdir(speech_directory):
         file_path = os.path.join(speech_directory, file)
@@ -143,17 +149,19 @@ def main():
         threshold = rospy.get_param('/ros_speech2text/audio_threshold', 700)
     else:
         threshold = rospy.get_param('/ros_speech2text/audio_dynamic_percentage', 50)
+
+    SPEECH_HISTORY_DIR = rospy.get_param('/ros_speech2text/speech_history', '~/.ros/ros_speech2text/speech_history')
+    SPEECH_HISTORY_DIR = expand_dir(SPEECH_HISTORY_DIR)
+    input_idx = rospy.get_param('/ros_speech2text/audio_device_idx', None)
+
     speech_detector = SpeechDetector(
         rate,
         threshold,
         dynamic_threshold=dynamic_thresholding,
         dynamic_threshold_frame=rospy.get_param('/ros_speech2text/audio_dynamic_frame', 3),
         min_average_volume=rospy.get_param('/ros_speech2text/audio_min_avg', 100),
+        verbose=rospy.get_param('/ros_speech2text/verbose_mode', True)
     )
-
-    SPEECH_HISTORY_DIR = rospy.get_param('/ros_speech2text/speech_history', '~/.ros/ros_speech2text/speech_history')
-    SPEECH_HISTORY_DIR = expand_dir(SPEECH_HISTORY_DIR)
-    input_idx = rospy.get_param('/ros_speech2text/audio_device_idx', None)
 
     """
     Set up PyAudio client, and fetch all available devices
@@ -171,7 +179,7 @@ def main():
         stream = p.open(format=FORMAT, channels=1, rate=rate,
                         input=True, start=False, input_device_index=input_idx,
                         output=False,
-                        frames_per_buffer=speech_detector.chunk_size * 10)
+                        frames_per_buffer=speech_detector.chunk_size)
     except IOError:
         rospy.logerr("Invalid device ID. Available devices listed in rosparam /ros_speech2text/available_audio_device")
         p.terminate()
@@ -181,11 +189,15 @@ def main():
     speech_client = speech.Client()
     sn = 0
 
+    csv_file = open(os.path.join(SPEECH_HISTORY_DIR,'transcript'),'wb')
+    writer = csv.writer(csv_file,delimiter=' ',)
+    writer.writerow(['start','end','duration','transcript','confidence'])
+
     """
     Start thread for checking operation results.
     Operations are stored in the global variable OPERATION_QUEUE
     """
-    thread.start_new_thread(check_operation, (pub_text, pub_screen))
+    thread.start_new_thread(check_operation, (pub_text, pub_screen, writer))
 
     """
     Main loop for fetching audio and making operation requests.
@@ -204,7 +216,8 @@ def main():
 
     stream.close()
     p.terminate()
-    # cleanup()
+    csv_file.close()
+    cleanup()
 
 
 if __name__ == '__main__':
