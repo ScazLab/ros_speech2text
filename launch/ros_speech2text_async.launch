@@ -16,6 +16,9 @@
         <!-- param for static thresholding /-->
         <param    name ="audio_threshold" value="700"   />
 
+        <!-- param for using async API call /-->
+        <param    name ="async_mode" value="False"  />
+
         <!-- param for dynamic thresholding /-->
         <param    name ="enable_dynamic_threshold" value="True"  />
 
@@ -29,7 +32,7 @@
         <param    name ="audio_min_avg" value="100"  />
 
         <!-- param for showing debug information /-->
-        <param    name ="verbosity" value="False"  />
+        <param    name ="verbosity" value="True"  />
 
         <!-- param for cleaning up audio and transcript data after node ends /-->
         <param    name ="cleanup" value="True"  />

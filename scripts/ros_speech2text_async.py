@@ -23,7 +23,7 @@ OPERATION_QUEUE = []
 pub_screen = None
 
 
-def recog(speech_client, sn, context, rate):
+def recog(async_mode, speech_client, sn, context, rate):
     """
     Constructs a recog operation with the audio file specified by sn
     The operation is an asynchronous api call
@@ -38,9 +38,16 @@ def recog(speech_client, sn, context, rate):
             encoding='LINEAR16',
             sample_rate=rate)
 
-    operation = speech_client.speech_api.async_recognize(sample=audio_sample,
+    if async_mode:
+        operation = speech_client.speech_api.async_recognize(sample=audio_sample,
                                                          speech_context=context)
-    return operation
+        return operation
+    else:
+        alternatives = speech_client.speech_api.sync_recognize(sample = audio_sample,
+            speech_context = context)
+        for alternative in alternatives:
+            return alternative.transcript,alternative.confidence
+    
 
 
 def record_to_file(sample_width, data, sn, rate):
@@ -69,6 +76,20 @@ def expand_dir(speech_history_dir):
         os.makedirs(speech_history_dir)
     return speech_history_dir
 
+def generate_msg(text,confidence,start_time,end_time,pub_text,pub_screen,writer):
+    msg = transcript()
+    msg.start_time = start_time
+    msg.end_time = end_time
+    msg.speech_duration = start_time-end_time
+    msg.received_time = rospy.get_rostime()
+    msg.transcript = text
+    msg.confidence = confidence
+    rospy.logwarn("%s,confidence:%f" % (text, confidence))
+    pub_text.publish(msg)
+    pub_screen.publish(text)
+    writer.writerow([msg.start_time,msg.end_time,msg.speech_duration,
+        msg.transcript,msg.confidence])
+    return msg
 
 def check_operation(pub_text, pub_screen, writer):
     """
@@ -83,18 +104,7 @@ def check_operation(pub_text, pub_screen, writer):
         for op in OPERATION_QUEUE[:]:
             if op[0].complete:
                 for result in op[0].results:
-                    msg = transcript()
-                    msg.start_time = op[1]
-                    msg.end_time = op[2]
-                    msg.speech_duration = op[2] - op[1]
-                    msg.received_time = rospy.get_rostime()
-                    msg.transcript = result.transcript
-                    msg.confidence = result.confidence
-                    rospy.logwarn("%s,confidence:%f" % (result.transcript, result.confidence))
-                    pub_text.publish(msg)
-                    pub_screen.publish(result.transcript)
-                    writer.writerow([msg.start_time,msg.end_time,msg.speech_duration,
-                        msg.transcript,msg.confidence])
+                    msg = generate_msg(result.transcript,result.confidence,op[1],op[2],pub_text,pub_screen,writer)
                 OPERATION_QUEUE.remove(op)
             else:
                 try:
@@ -143,6 +153,7 @@ def main():
     node_name = rospy.get_name()
     pub_text = rospy.Publisher(node_name+'/user_output', transcript, queue_size=10)
     pub_screen = rospy.Publisher('/svox_tts/speech_output', String, queue_size=10)
+    async_mode = rospy.get_param(node_name+'/async_mode', True)
     rate = rospy.get_param(node_name+'/audio_rate', 16000)
     dynamic_thresholding = rospy.get_param(node_name+'/enable_dynamic_threshold', False)
     if dynamic_thresholding:
@@ -210,8 +221,12 @@ def main():
             break
         record_to_file(sample_width, aud_data, sn, speech_detector.rate)
         context = rospy.get_param(node_name+'/speech_context', [])
-        operation = recog(speech_client, sn, context, speech_detector.rate)
-        OPERATION_QUEUE.append([operation, start_time, end_time])
+        if async_mode:
+            operation = recog(async_mode, speech_client, sn, context, speech_detector.rate)
+            OPERATION_QUEUE.append([operation, start_time, end_time])
+        else:
+            transc,confidence = recog(async_mode, speech_client, sn, context, speech_detector.rate)
+            generate_msg(transc,confidence,start_time,end_time,pub_text,pub_screen,writer)
         sn += 1
 
     stream.close()
