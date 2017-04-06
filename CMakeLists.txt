@@ -28,7 +28,7 @@ include_directories(
 ## Install
 
 install(PROGRAMS
-  scripts/ros_speech2text_async.py
-  scripts/ros_speech2text_sync.py
+  scripts/ros_speech2text.py
+  ## scripts/ros_speech2text_sync.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

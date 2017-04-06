@@ -6,7 +6,7 @@
     <env      name ="GOOGLE_APPLICATION_CREDENTIALS"   value="$(find ros_speech2text)/GCloud_SpeechAPI_Cred" />
 
     <!-- starts node for asynchronous s2t /-->
-    <node pkg="ros_speech2text" name="ros_speech2text" type="ros_speech2text_async.py" output="screen">
+    <node pkg="ros_speech2text" name="ros_speech2text" type="ros_speech2text.py" output="screen">
         <!-- device ID of audio source. If unknown, launch once and get param /ros_speech2text/available_audio_device /-->
         <param    name ="audio_device_idx" value="0"  />
 
@@ -17,7 +17,7 @@
         <param    name ="audio_threshold" value="700"   />
 
         <!-- param for using async API call /-->
-        <param    name ="async_mode" value="False"  />
+        <param    name ="async_mode" value="True"  />
 
         <!-- param for dynamic thresholding /-->
         <param    name ="enable_dynamic_threshold" value="True"  />
@@ -32,7 +32,7 @@
         <param    name ="audio_min_avg" value="100"  />
 
         <!-- param for showing debug information /-->
-        <param    name ="verbosity" value="True"  />
+        <param    name ="verbosity" value="False"  />
 
         <!-- param for cleaning up audio and transcript data after node ends /-->
         <param    name ="cleanup" value="True"  />
