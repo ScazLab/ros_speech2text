@@ -35,25 +35,25 @@ class TestNormalize(TestCase):
 
 
 class TestAddSilence(TestCase):
-    def test_add_silence_front(self):
+    def test_adds_silence_front(self):
         pass
-    def test_add_silence_end(self):
+    def test_adds_silence_end(self):
         pass
 
 class TestUtteranceDetection(TestCase):
-    def test_silent_array_with_clean_average(self):
+    def test_silent_array_with_clean_average_no_utterance(self):
         # there should be no utterance detected
         pass
-    def test_silent_array_with_random_average(self):
+    def test_silent_array_with_random_average_no_utterance(self):
         # there should be no utterance detected
         pass
-    def test_constant_array_with_clean_average(self):
+    def test_constant_array_with_clean_average_is_utterance(self):
         # whole array should be classified as utterance
         pass
-    def test_constant_array_with_high_average(self):
+    def test_constant_array_with_high_average_no_utterance(self):
         # there should be no utterance detected
         pass
-    def test_sin_array_with_clean_average(self):
+    def test_sin_array_with_clean_average_is_utterance(self):
         # a part of the array should be classified utterance
         pass
 
