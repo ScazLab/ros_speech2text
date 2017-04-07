@@ -4,7 +4,8 @@ import numpy as np
 
 from s2t.speech_detection import (StaticSilenceDetector,
                                   DynamicSilenceDetector,
-                                  normalize, NORMAL_MAXIMUM)
+                                  normalize, NORMAL_MAXIMUM,
+                                  add_silence)
 
 
 class TestNormalize(TestCase):
@@ -34,9 +35,27 @@ class TestNormalize(TestCase):
 
 
 class TestAddSilence(TestCase):
+    def test_add_silence_front(self):
+        pass
+    def test_add_silence_end(self):
+        pass
 
-    pass
-
+class TestUtteranceDetection(TestCase):
+    def test_silent_array_with_clean_average(self):
+        # there should be no utterance detected
+        pass
+    def test_silent_array_with_random_average(self):
+        # there should be no utterance detected
+        pass
+    def test_constant_array_with_clean_average(self):
+        # whole array should be classified as utterance
+        pass
+    def test_constant_array_with_high_average(self):
+        # there should be no utterance detected
+        pass
+    def test_sin_array_with_clean_average(self):
+        # a part of the array should be classified utterance
+        pass
 
 class TestStaticSilenceDetector(TestCase):
 
