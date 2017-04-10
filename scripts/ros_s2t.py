@@ -100,7 +100,6 @@ def check_operation(pub_text, pub_screen, writer):
     """
     global OPERATION_QUEUE
     while not rospy.is_shutdown():
-        # rospy.loginfo("check operation results")
         for op in OPERATION_QUEUE[:]:
             if op[0].complete:
                 for result in op[0].results:
@@ -119,7 +118,7 @@ def cleanup():
     """
     Cleans up speech history directory after session ends
     """
-    cleanup=rospy.get_param('/ros_speech2text/cleanup', True)
+    cleanup=rospy.get_param(rospy.get_name()+'/cleanup', True)
     if not cleanup:
         return
     speech_directory = SPEECH_HISTORY_DIR
@@ -155,8 +154,8 @@ def main():
     pub_screen = rospy.Publisher('/svox_tts/speech_output', String, queue_size=10)
     async_mode = rospy.get_param(node_name+'/async_mode', True)
     rate = rospy.get_param(node_name+'/audio_rate', 16000)
-    dynamic_thresholding = rospy.get_param(node_name+'/enable_dynamic_threshold', False)
-    if dynamic_thresholding:
+    dynamic_thresholding = rospy.get_param(node_name+'/enable_dynamic_threshold', True)
+    if not dynamic_thresholding:
         threshold = rospy.get_param(node_name+'/audio_threshold', 700)
     else:
         threshold = rospy.get_param(node_name+'/audio_dynamic_percentage', 50)

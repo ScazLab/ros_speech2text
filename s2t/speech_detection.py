@@ -152,6 +152,7 @@ class SpeechDetector:
             # Check whether to start collecting utterance
             if not self.silence_detect.is_static:  # TODO: Why only for dynamic?
                 self.n_peaks += 1
+                self.silence_detect.update_average(chunk)
                 self.chunks.append(chunk)
             if (self.silence_detect.is_static or
                     self.n_peaks >= self.dyn_thr_frame):
@@ -162,7 +163,7 @@ class SpeechDetector:
         if silent and not self.in_utterance:
             self.silence_detect.update_average(chunk)
             self.chunks = []
-            n_peaks = 0
+            self.n_peaks = 0
         if self.in_utterance:
             self.chunks.append(chunk)
             if silent:
@@ -172,7 +173,7 @@ class SpeechDetector:
 
     @property
     def found(self):
-        return self.n_silent > 5
+        return self.n_silent > 10
 
     def get_next_utter(self, stream, start_callback, end_callback):
         """
