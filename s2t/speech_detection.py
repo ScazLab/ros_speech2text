@@ -155,8 +155,8 @@ class SpeechDetector:
                 self.chunks.append(chunk)
             if (self.silence_detect.is_static or
                     self.n_peaks >= self.dyn_thr_frame):
-                
                 self.in_utterance = True
+                self.chunks.pop()
                 rospy.logwarn('collecting audio segment')
                 self.start_time = rospy.get_rostime()
         if silent and not self.in_utterance:
@@ -167,10 +167,12 @@ class SpeechDetector:
             self.chunks.append(chunk)
             if silent:
                 self.n_silent += 1
+            else:
+                self.n_silent = 0
 
     @property
     def found(self):
-        return self.n_silent > 10
+        return self.n_silent > 5
 
     def get_next_utter(self, stream, start_callback, end_callback):
         """
@@ -209,5 +211,5 @@ class SpeechDetector:
         r = normalize(np.hstack(self.chunks))
         if self.silence_detect.is_static:
             r = self.silence_detect.trim(r)
-        r = add_silence(r, self.rate, 0.5)
+        r = add_silence(r, self.rate, 1)
         return r, self.start_time, end_time

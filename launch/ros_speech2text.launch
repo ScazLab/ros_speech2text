@@ -32,10 +32,10 @@
         <param    name ="audio_min_avg" value="100"  />
 
         <!-- param for showing debug information /-->
-        <param    name ="verbosity" value="False"  />
+        <param    name ="verbosity" value="True"  />
 
         <!-- param for cleaning up audio and transcript data after node ends /-->
-        <param    name ="cleanup" value="True"  />
+        <param    name ="cleanup" value="False"  />
 
         <!-- list of context clues for speech recognition /-->
         <rosparam param="speech_context">
