@@ -10,22 +10,26 @@ from s2t.speech_detection import (StaticSilenceDetector,
 
 class TestNormalize(TestCase):
 
-    def test_normalize_ones(self):
+    @staticmethod
+    def test_normalize_ones():
         a = np.ones((5,))
         b = NORMAL_MAXIMUM * a
         np.testing.assert_array_equal(normalize(a), b)
 
-    def test_normalize_twos(self):
+    @staticmethod
+    def test_normalize_twos():
         a = 2 * np.ones((5,))
         b = np.ones((5,)) * NORMAL_MAXIMUM
         np.testing.assert_array_equal(normalize(a), b)
 
-    def test_normalize(self):
+    @staticmethod
+    def test_normalize():
         a = np.array([10, 1, 0])
         b = np.array([NORMAL_MAXIMUM, NORMAL_MAXIMUM // 10, 0])
         np.testing.assert_array_equal(normalize(a), b)
 
-    def test_normalize_already_normal(self):
+    @staticmethod
+    def test_normalize_already_normal():
         a = np.array([NORMAL_MAXIMUM, NORMAL_MAXIMUM // 10, 0])
         np.testing.assert_array_equal(normalize(a), a)
 
