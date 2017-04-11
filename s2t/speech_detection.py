@@ -187,9 +187,7 @@ class SpeechDetector:
         self.reset()
 
         while not self.found:
-            """
-            main loop for audio capturing
-            """
+            # main loop for audio capturing
             if self.in_utterance:  # TODO: merge with other message
                 # pub_screen.publish("Sentence Started")
                 start_callback()
