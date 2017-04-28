@@ -39,8 +39,11 @@ def recog(async_mode, speech_client, sn, context, rate):
             sample_rate=rate)
 
     if async_mode:
-        operation = speech_client.speech_api.async_recognize(sample=audio_sample,
+        try:
+            operation = speech_client.speech_api.async_recognize(sample=audio_sample,
                                                          speech_context=context)
+        except ValueError:
+            ros.logerr("Audio Segment too long. Unable to recognize")
         return operation
     else:
         alternatives = speech_client.speech_api.sync_recognize(sample = audio_sample,
