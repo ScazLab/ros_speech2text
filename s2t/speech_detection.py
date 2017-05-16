@@ -142,7 +142,6 @@ class SpeechDetector:
 
     def treat_chunk(self, chunk):
         silent = self.silence_detect.is_silent(chunk)
-        
         # Print average for dynamic threshold
         # TODO: should be a debug
         if not self.silence_detect.is_static and self.verbose:

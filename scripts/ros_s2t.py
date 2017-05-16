@@ -50,7 +50,6 @@ def recog(async_mode, speech_client, sn, context, rate):
             speech_context = context)
         for alternative in alternatives:
             return alternative.transcript,alternative.confidence
-    
 
 
 def record_to_file(sample_width, data, sn, rate):
@@ -106,7 +105,7 @@ def check_operation(pub_text, pub_screen, writer):
         for op in OPERATION_QUEUE[:]:
             if op[0].complete:
                 for result in op[0].results:
-                    msg = generate_msg(result.transcript,result.confidence,op[1],op[2],pub_text,pub_screen,writer)
+                    generate_msg(result.transcript,result.confidence,op[1],op[2],pub_text,pub_screen,writer)
                 OPERATION_QUEUE.remove(op)
             else:
                 try:
@@ -146,7 +145,6 @@ def utterance_end():
 
 def main():
     global SPEECH_HISTORY_DIR
-    global FORMAT
     global OPERATION_QUEUE
     global pub_screen
 
