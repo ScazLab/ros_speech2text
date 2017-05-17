@@ -22,7 +22,8 @@
 
   <depend>rospy</depend>
   <depend>std_msgs</depend>
-  <depend>rostest</depend>
+
+  <build_depend>rostest</build_depend>
 
   <build_depend>message_generation</build_depend>
 

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
+PKG = 'ros_speech2text'
 
+import unittest
 from unittest import TestCase
 
 import numpy as np
@@ -116,3 +118,7 @@ class TestDynamicSilenceDetector(TestCase):
         # Hence sd.avg_volume == 2
         sd.reset_average()
         self.assertEqual(sd.average_volume, 1.5)
+
+if __name__ == '__main__':
+    import rostest
+    rostest.rosrun(PKG, 'test_speech_detection', TestNormalize)
