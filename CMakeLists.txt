@@ -25,6 +25,13 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
+## Test
+
+if(CATKIN_ENABLE_TESTING)
+  find_package(rostest REQUIRED)
+  add_rostest(test/test_s2t.test)
+endif()
+
 ## Install
 
 install(PROGRAMS
