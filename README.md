@@ -1,4 +1,4 @@
-# Ros Speech2Text [![Issues](https://img.shields.io/github/issues/ScazLab/ros_speech2text.svg?label=Issues)](https://github.com/ScazLab/ros_speech2text/issues)
+# Ros Speech2Text [![Issues](https://img.shields.io/github/issues/ScazLab/ros_speech2text.svg?label=Issues)](https://github.com/ScazLab/ros_speech2text/issues) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/be514e5db92f4f96876c5b3afbffcd1f)](https://www.codacy.com/app/Baxter-collaboration/ros_speech2text?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ScazLab/ros_speech2text&amp;utm_campaign=Badge_Grade)
 
 A speech2text engine for ROS, using the Google Cloud Speech API.
 
@@ -8,7 +8,7 @@ A speech2text engine for ROS, using the Google Cloud Speech API.
 
  * `ros`: Any version newer than ROS Indigo should work.
  * `google cloud speech 0.22.0`: Available [here](https://pypi.python.org/pypi/google-cloud). Further instructions on API authentication can be found below.
- * `PyAudio 0.2.7`: Python package for audio source fetching. 
+ * `PyAudio 0.2.7`: Python package for audio source fetching.
  * `svox_tts` : it's a SVOX-PICO based wrapper for text-to-speech. It's not necessary, but if you wish to see status messages on the screen of your robot, svox_tts is required. Available [here](https://github.com/ScazLab/svox_tts).
 
 ## Installation
@@ -17,11 +17,11 @@ Installation of the package follows the standard building procedure of ROS packa
 
  1. Compile the repo: `catkin build ros_speech2text`
  2. To test if the package is working, run `roslaunch ros_speech2text ros_speech2text_async.launch`.
- 
+
 ### Authentication Instructions
 
 Authentication of the `Google Cloud Speech API` is done by setting an environmental variable. For instructions on obtaing an API credential, check [here](https://cloud.google.com/speech/docs/getting-started). The path of the API credential should be supplied in the launch file, see below for more instructions.
- 
+
 ## Execution
 
 ### Initial steps (mainly for Scazlab students)
