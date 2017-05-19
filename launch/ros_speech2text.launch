@@ -37,6 +37,9 @@
         <!-- param for cleaning up audio and transcript data after node ends /-->
         <param    name ="cleanup" value="True"  />
 
+        <!-- param for unit and functional testing /-->
+        <param    name ="testing" value="False"  /> 
+
         <!-- list of context clues for speech recognition /-->
         <rosparam param="speech_context">
             ["screwdriver","left","right","yes","no","baxter","screw","table","hammer","board","can","you","tuck","untuck","give","pass","hand","move","help"]

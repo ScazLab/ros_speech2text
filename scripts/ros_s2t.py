@@ -23,13 +23,18 @@ OPERATION_QUEUE = []
 pub_screen = None
 
 
-def recog(async_mode, speech_client, sn, context, rate):
+def recog(async_mode, speech_client, sn, context, rate, debug=False):
     """
     Constructs a recog operation with the audio file specified by sn
     The operation is an asynchronous api call
     """
-    file_name = 'sentence' + str(sn) + '.wav'
-    file_path = os.path.join(SPEECH_HISTORY_DIR, file_name)
+    if debug:
+        # generate corresponding file path from sn
+        file_path = sn
+    else:
+        file_name = 'sentence' + str(sn) + '.wav'
+        file_path = os.path.join(SPEECH_HISTORY_DIR, file_name)
+
     with io.open(file_path, 'rb') as audio_file:
         content = audio_file.read()
         audio_sample = speech_client.sample(
@@ -142,11 +147,31 @@ def utterance_end():
     rospy.logwarn('audio segment completed')
     pub_screen.publish("Recognizing")
 
+def test_recog(file_path,args):
+    global TESTING_MODE
+    rate,async_mode,speech_client=args[0],args[1],args[2]
+    file_path = file_path.data
+    if file_path=='END_TEST':
+        TESTING_MODE = False
+        rospy.logwarn("Test Finished")
+        return
+    node_name = rospy.get_name()
+    context = rospy.get_param(node_name+'/speech_context', [])
+    if async_mode:
+        operation = recog(async_mode, speech_client, file_path, context, rate,debug=True)
+        OPERATION_QUEUE.append([operation, 0, 0])
+    else:
+        rospy.logerr("Testing not supported for synchronous recog")
+        # transc,confidence = recog(async_mode, speech_client, file_path, context, rate, debug=True)
+        # generate_msg(transc,confidence,0,0,pub_text,pub_screen,writer)
+    
+
 
 def main():
     global SPEECH_HISTORY_DIR
     global OPERATION_QUEUE
     global pub_screen
+    global TESTING_MODE
 
     # Setting up ros params
     rospy.init_node('speech2text_engine', anonymous=True)
@@ -155,6 +180,7 @@ def main():
     pub_screen = rospy.Publisher('/svox_tts/speech_output', String, queue_size=10)
     async_mode = rospy.get_param(node_name+'/async_mode', True)
     rate = rospy.get_param(node_name+'/audio_rate', 16000)
+    TESTING_MODE = rospy.get_param(node_name+'/testing',False)
     dynamic_thresholding = rospy.get_param(node_name+'/enable_dynamic_threshold', True)
     if not dynamic_thresholding:
         threshold = rospy.get_param(node_name+'/audio_threshold', 700)
@@ -210,10 +236,11 @@ def main():
     """
     thread.start_new_thread(check_operation, (pub_text, pub_screen, writer))
 
+
     """
     Main loop for fetching audio and making operation requests.
     """
-    while not rospy.is_shutdown():
+    while not rospy.is_shutdown() and not TESTING_MODE:
         aud_data, start_time, end_time = speech_detector.get_next_utter(
             stream, utterance_start,utterance_end)
         if aud_data is None:
@@ -228,6 +255,16 @@ def main():
             transc,confidence = recog(async_mode, speech_client, sn, context, speech_detector.rate)
             generate_msg(transc,confidence,start_time,end_time,pub_text,pub_screen,writer)
         sn += 1
+
+    """
+    Alternate loop for taking file name as input
+    """
+    if TESTING_MODE:
+        rospy.logwarn("Testing mode on")
+        rospy.Subscriber("test_input",String,test_recog,(speech_detector.rate,async_mode,speech_client))
+        while TESTING_MODE:
+            rospy.sleep(1)
+    # while TESTING_MODE:
 
     stream.close()
     p.terminate()

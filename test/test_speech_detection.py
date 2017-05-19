@@ -119,6 +119,9 @@ class TestDynamicSilenceDetector(TestCase):
         sd.reset_average()
         self.assertEqual(sd.average_volume, 1.5)
 
+class TestSpeechAPI(TestCase):
+    pass
+
 if __name__ == '__main__':
     import rostest
     rostest.rosrun(PKG, 'test_speech_detection', TestNormalize)
