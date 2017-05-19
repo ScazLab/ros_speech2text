@@ -3,9 +3,13 @@ PKG = 'ros_speech2text'
 
 import unittest
 from unittest import TestCase
-
+from std_msgs.msg import String
 import numpy as np
+import rospkg
+import rospy
+import os
 
+from ros_speech2text.msg import transcript
 from s2t.speech_detection import (StaticSilenceDetector,
                                   DynamicSilenceDetector,
                                   normalize, NORMAL_MAXIMUM,
@@ -120,8 +124,34 @@ class TestDynamicSilenceDetector(TestCase):
         self.assertEqual(sd.average_volume, 1.5)
 
 class TestSpeechAPI(TestCase):
-    pass
+    def setUp(self):
+        
+        p = rospkg.RosPack()
+        package_path = p.get_path('ros_speech2text')
+        self.audio_path = os.path.join(package_path,'test','test_audio')
+        self.result = None
+
+    # def tearDown(self):
+    #     self.pub.unregister()
+
+    def callback1(self,recog_result):
+        print "results received"
+        self.result = recog_result.transcript
+
+    def test_sentence1(self):
+        self.pub= rospy.Publisher('/test_input',String)
+        file_path = os.path.join(self.audio_path,'sentence0.wav')
+        print file_path
+        self.pub.publish(file_path)
+        rospy.Subscriber('ros_speech2text/user_output',transcript,self.callback1)
+        while self.result==None:
+            print "waiting for result"
+            rospy.sleep(1)
+        print self.result
+        self.assertEqual(self.result,'good morning Baxter how are you doing today')
+
 
 if __name__ == '__main__':
     import rostest
-    rostest.rosrun(PKG, 'test_speech_detection', TestNormalize)
+    rospy.init_node('test_ros_speech2text')
+    rostest.rosrun(PKG, 'test_speech_detection', TestSpeechAPI)

@@ -151,6 +151,8 @@ def test_recog(file_path,args):
     global TESTING_MODE
     rate,async_mode,speech_client=args[0],args[1],args[2]
     file_path = file_path.data
+    print "received file"
+    print file_path
     if file_path=='END_TEST':
         TESTING_MODE = False
         rospy.logwarn("Test Finished")
@@ -264,7 +266,6 @@ def main():
         rospy.Subscriber("test_input",String,test_recog,(speech_detector.rate,async_mode,speech_client))
         while TESTING_MODE:
             rospy.sleep(1)
-    # while TESTING_MODE:
 
     stream.close()
     p.terminate()
