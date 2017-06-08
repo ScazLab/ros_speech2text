@@ -139,7 +139,7 @@ class TestSpeechAPI(TestCase):
         self.result = recog_result.transcript
 
     def test_sentence1(self):
-        self.pub= rospy.Publisher('/test_input',String)
+        self.pub= rospy.Publisher('/test_input',String,queue_size=10)
         file_path = os.path.join(self.audio_path,'sentence0.wav')
         print file_path
         self.pub.publish(file_path)

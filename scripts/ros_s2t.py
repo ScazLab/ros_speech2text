@@ -47,7 +47,7 @@ def recog(async_mode, speech_client, sn, context, rate, debug=False):
         try:
             operation = speech_client.speech_api.async_recognize(sample=audio_sample,
                                                          speech_context=context)
-        except ValueError:
+        except ValueError, google.gax.errors.RetryError:
             ros.logerr("Audio Segment too long. Unable to recognize")
         return operation
     else:
