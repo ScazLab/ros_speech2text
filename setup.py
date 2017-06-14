@@ -5,6 +5,7 @@ from catkin_pkg.python_setup import generate_distutils_setup
 
 # fetch values from package.xml
 setup_args = generate_distutils_setup(
-    packages=['s2t'])
+    packages=['s2t'],
+    install_requires=['pyaudio>=0.2.9'])
 
 setup(**setup_args)

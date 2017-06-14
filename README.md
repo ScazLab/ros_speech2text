@@ -8,7 +8,7 @@ A speech2text engine for ROS, using the Google Cloud Speech API.
 
  * `ros`: Any version newer than ROS Indigo should work.
  * `google cloud speech 0.22.0`: Available [here](https://pypi.python.org/pypi/google-cloud). Further instructions on API authentication can be found below.
- * `PyAudio 0.2.7`: Python package for audio source fetching.
+ * `PyAudio>=0.2.9`: Python package for audio source fetching.
  * `svox_tts` : it's a SVOX-PICO based wrapper for text-to-speech. It's not necessary, but if you wish to see status messages on the screen of your robot, svox_tts is required. Available [here](https://github.com/ScazLab/svox_tts).
 
 ## Installation
@@ -17,6 +17,12 @@ Installation of the package follows the standard building procedure of ROS packa
 
  1. Compile the repo: `catkin build ros_speech2text`
  2. To test if the package is working, run `roslaunch ros_speech2text ros_speech2text_async.launch`.
+
+
+### Note for pyAudio on Ubuntu 14.04
+
+The packaged version of pyAudio on Trusty is `0.2.7`. Newer versions can be installed via `pip install pyaudio`. It however requires portaudio to be installed on the system which can be achieved thanks to the `libportaudio-dev` ubuntu package.
+
 
 ### Authentication Instructions
 
