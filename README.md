@@ -21,7 +21,7 @@ Installation of the package follows the standard building procedure of ROS packa
 
 ### Note for pyAudio on Ubuntu 14.04
 
-The packaged version of pyAudio on Trusty is `0.2.7`. Newer versions can be installed via `pip install pyaudio`. It however requires portaudio to be installed on the system which can be achieved thanks to the `libportaudio-dev` ubuntu package.
+The packaged version of pyAudio on Trusty is `0.2.7`. Newer versions can be installed via `pip install pyaudio`. It however requires portaudio to be installed on the system which can be found [here](http://www.portaudio.com/download.html).
 
 
 ### Authentication Instructions
