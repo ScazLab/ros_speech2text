@@ -1,20 +1,22 @@
 #!/usr/bin/env python
 
 
-from struct import pack
-from std_msgs.msg import String
-from google.cloud import speech
-from ros_speech2text.msg import transcript
-from s2t.speech_detection import SpeechDetector
-
-import pyaudio
-import wave
 import io
 import os
 import sys
-import rospy
-import thread
 import csv
+import thread
+import wave
+import pyaudio
+import google
+from struct import pack
+
+import rospy
+from std_msgs.msg import String
+from ros_speech2text.msg import transcript
+
+from s2t.speech_detection import SpeechDetector
+
 
 SPEECH_HISTORY_DIR = None
 FORMAT = pyaudio.paInt16
@@ -45,16 +47,16 @@ def recog(async_mode, speech_client, sn, context, rate, debug=False):
 
     if async_mode:
         try:
-            operation = speech_client.speech_api.async_recognize(sample=audio_sample,
-                                                         speech_context=context)
-        except ValueError, google.gax.errors.RetryError:
-            ros.logerr("Audio Segment too long. Unable to recognize")
+            operation = speech_client.speech_api.async_recognize(
+                sample=audio_sample, speech_context=context)
+        except (ValueError, google.gax.errors.RetryError):
+            rospy.logerr("Audio Segment too long. Unable to recognize")
         return operation
     else:
-        alternatives = speech_client.speech_api.sync_recognize(sample = audio_sample,
-            speech_context = context)
+        alternatives = speech_client.speech_api.sync_recognize(
+            sample=audio_sample, speech_context=context)
         for alternative in alternatives:
-            return alternative.transcript,alternative.confidence
+            return alternative.transcript, alternative.confidence
 
 
 def record_to_file(sample_width, data, sn, rate):
@@ -83,20 +85,23 @@ def expand_dir(speech_history_dir):
         os.makedirs(speech_history_dir)
     return speech_history_dir
 
-def generate_msg(text,confidence,start_time,end_time,pub_text,pub_screen,writer):
+
+def generate_msg(text, confidence, start_time, end_time, pub_text, pub_screen,
+                 writer):
     msg = transcript()
     msg.start_time = start_time
     msg.end_time = end_time
-    msg.speech_duration = start_time-end_time
+    msg.speech_duration = start_time - end_time
     msg.received_time = rospy.get_rostime()
     msg.transcript = text
     msg.confidence = confidence
     rospy.logwarn("%s,confidence:%f" % (text, confidence))
     pub_text.publish(msg)
     pub_screen.publish(text)
-    writer.writerow([msg.start_time,msg.end_time,msg.speech_duration,
-        msg.transcript,msg.confidence])
+    writer.writerow([msg.start_time, msg.end_time, msg.speech_duration,
+                     msg.transcript, msg.confidence])
     return msg
+
 
 def check_operation(pub_text, pub_screen, writer):
     """
@@ -110,7 +115,8 @@ def check_operation(pub_text, pub_screen, writer):
         for op in OPERATION_QUEUE[:]:
             if op[0].complete:
                 for result in op[0].results:
-                    generate_msg(result.transcript,result.confidence,op[1],op[2],pub_text,pub_screen,writer)
+                    generate_msg(result.transcript, result.confidence, op[1],
+                                 op[2], pub_text, pub_screen, writer)
                 OPERATION_QUEUE.remove(op)
             else:
                 try:
@@ -125,7 +131,7 @@ def cleanup():
     """
     Cleans up speech history directory after session ends
     """
-    cleanup=rospy.get_param(rospy.get_name()+'/cleanup', True)
+    cleanup = rospy.get_param(rospy.get_name() + '/cleanup', True)
     if not cleanup:
         return
     speech_directory = SPEECH_HISTORY_DIR
@@ -137,36 +143,38 @@ def cleanup():
             rospy.logerr(e)
     os.rmdir(speech_directory)
 
+
 def utterance_start():
     # pass
     # rospy.loginfo('utterance_start')
     pub_screen.publish("Sentence Started")
+
 
 def utterance_end():
     # pass
     rospy.logwarn('audio segment completed')
     pub_screen.publish("Recognizing")
 
-def test_recog(file_path,args):
+
+def test_recog(file_path, args):
     global TESTING_MODE
-    rate,async_mode,speech_client=args[0],args[1],args[2]
+    rate, async_mode,  speech_client = args[0], args[1], args[2]
     file_path = file_path.data
-    print "received file"
-    print file_path
-    if file_path=='END_TEST':
+    print("received file")
+    print(file_path)
+    if file_path == 'END_TEST':
         TESTING_MODE = False
         rospy.logwarn("Test Finished")
         return
     node_name = rospy.get_name()
-    context = rospy.get_param(node_name+'/speech_context', [])
+    context = rospy.get_param(node_name + '/speech_context', [])
     if async_mode:
-        operation = recog(async_mode, speech_client, file_path, context, rate,debug=True)
+        operation = recog(async_mode, speech_client, file_path, context, rate, debug=True)
         OPERATION_QUEUE.append([operation, 0, 0])
     else:
         rospy.logerr("Testing not supported for synchronous recog")
         # transc,confidence = recog(async_mode, speech_client, file_path, context, rate, debug=True)
         # generate_msg(transc,confidence,0,0,pub_text,pub_screen,writer)
-    
 
 
 def main():
@@ -178,28 +186,28 @@ def main():
     # Setting up ros params
     rospy.init_node('speech2text_engine', anonymous=True)
     node_name = rospy.get_name()
-    pub_text = rospy.Publisher(node_name+'/user_output', transcript, queue_size=10)
+    pub_text = rospy.Publisher(node_name + '/user_output', transcript, queue_size=10)
     pub_screen = rospy.Publisher('/svox_tts/speech_output', String, queue_size=10)
-    async_mode = rospy.get_param(node_name+'/async_mode', True)
-    rate = rospy.get_param(node_name+'/audio_rate', 16000)
-    TESTING_MODE = rospy.get_param(node_name+'/testing',False)
-    dynamic_thresholding = rospy.get_param(node_name+'/enable_dynamic_threshold', True)
+    async_mode = rospy.get_param(node_name + '/async_mode', True)
+    rate = rospy.get_param(node_name + '/audio_rate', 16000)
+    TESTING_MODE = rospy.get_param(node_name + '/testing', False)
+    dynamic_thresholding = rospy.get_param(node_name + '/enable_dynamic_threshold', True)
     if not dynamic_thresholding:
-        threshold = rospy.get_param(node_name+'/audio_threshold', 700)
+        threshold = rospy.get_param(node_name + '/audio_threshold', 700)
     else:
-        threshold = rospy.get_param(node_name+'/audio_dynamic_percentage', 50)
+        threshold = rospy.get_param(node_name + '/audio_dynamic_percentage', 50)
 
     SPEECH_HISTORY_DIR = rospy.get_param('/ros_speech2text/speech_history', '~/.ros/ros_speech2text/speech_history')
     SPEECH_HISTORY_DIR = expand_dir(SPEECH_HISTORY_DIR)
-    input_idx = rospy.get_param(node_name+'/audio_device_idx', None)
+    input_idx = rospy.get_param(node_name + '/audio_device_idx', None)
 
     speech_detector = SpeechDetector(
         rate,
         threshold,
         dynamic_threshold=dynamic_thresholding,
-        dynamic_threshold_frame=rospy.get_param(node_name+'/audio_dynamic_frame', 3),
-        min_average_volume=rospy.get_param(node_name+'/audio_min_avg', 100),
-        verbose=rospy.get_param(node_name+'/verbosity', True)
+        dynamic_threshold_frame=rospy.get_param(node_name + '/audio_dynamic_frame', 3),
+        min_average_volume=rospy.get_param(node_name + '/audio_min_avg', 100),
+        verbose=rospy.get_param(node_name + '/verbosity', True)
     )
 
     """
@@ -225,37 +233,32 @@ def main():
         sys.exit(1)
     sample_width = p.get_sample_size(FORMAT)
 
-    speech_client = speech.Client()
+    speech_client = google.cloud.speech.Client()
     sn = 0
 
-    csv_file = open(os.path.join(SPEECH_HISTORY_DIR,'transcript'),'wb')
-    writer = csv.writer(csv_file,delimiter=' ',)
-    writer.writerow(['start','end','duration','transcript','confidence'])
+    csv_file = open(os.path.join(SPEECH_HISTORY_DIR, 'transcript'), 'wb')
+    writer = csv.writer(csv_file, delimiter=' ',)
+    writer.writerow(['start', 'end', 'duration', 'transcript', 'confidence'])
 
-    """
-    Start thread for checking operation results.
-    Operations are stored in the global variable OPERATION_QUEUE
-    """
+    # Start thread for checking operation results.
+    # Operations are stored in the global variable OPERATION_QUEUE
     thread.start_new_thread(check_operation, (pub_text, pub_screen, writer))
 
-
-    """
-    Main loop for fetching audio and making operation requests.
-    """
+    # Main loop for fetching audio and making operation requests.
     while not rospy.is_shutdown() and not TESTING_MODE:
         aud_data, start_time, end_time = speech_detector.get_next_utter(
-            stream, utterance_start,utterance_end)
+            stream, utterance_start, utterance_end)
         if aud_data is None:
             rospy.loginfo("Node terminating")
             break
         record_to_file(sample_width, aud_data, sn, speech_detector.rate)
-        context = rospy.get_param(node_name+'/speech_context', [])
+        context = rospy.get_param(node_name + '/speech_context', [])
         if async_mode:
             operation = recog(async_mode, speech_client, sn, context, speech_detector.rate)
             OPERATION_QUEUE.append([operation, start_time, end_time])
         else:
-            transc,confidence = recog(async_mode, speech_client, sn, context, speech_detector.rate)
-            generate_msg(transc,confidence,start_time,end_time,pub_text,pub_screen,writer)
+            transc, confidence = recog(async_mode, speech_client, sn, context, speech_detector.rate)
+            generate_msg(transc, confidence, start_time, end_time, pub_text, pub_screen, writer)
         sn += 1
 
     """
@@ -263,7 +266,7 @@ def main():
     """
     if TESTING_MODE:
         rospy.logwarn("Testing mode on")
-        rospy.Subscriber("test_input",String,test_recog,(speech_detector.rate,async_mode,speech_client))
+        rospy.Subscriber("test_input", String, test_recog, (speech_detector.rate, async_mode, speech_client))
         while TESTING_MODE:
             rospy.sleep(1)
 
