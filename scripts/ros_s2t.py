@@ -22,7 +22,6 @@ SPEECH_HISTORY_DIR = None
 FORMAT = pyaudio.paInt16
 run_flag = True
 OPERATION_QUEUE = []
-pub_screen = None
 
 
 def recog(async_mode, speech_client, sn, context, rate, debug=False):
@@ -144,16 +143,17 @@ def cleanup():
     os.rmdir(speech_directory)
 
 
-def utterance_start():
-    # pass
-    # rospy.loginfo('utterance_start')
-    pub_screen.publish("Sentence Started")
+def utterance_start(pub_screen):
+    def aux():
+        pub_screen.publish("Sentence Started")
+    return aux
 
 
-def utterance_end():
-    # pass
-    rospy.logwarn('audio segment completed')
-    pub_screen.publish("Recognizing")
+def utterance_end(pub_screen):
+    def aux():
+        rospy.logwarn('audio segment completed')
+        pub_screen.publish("Recognizing")
+    return aux
 
 
 def test_recog(file_path, args):
@@ -180,7 +180,6 @@ def test_recog(file_path, args):
 def main():
     global SPEECH_HISTORY_DIR
     global OPERATION_QUEUE
-    global pub_screen
     global TESTING_MODE
 
     # Setting up ros params
@@ -247,7 +246,7 @@ def main():
     # Main loop for fetching audio and making operation requests.
     while not rospy.is_shutdown() and not TESTING_MODE:
         aud_data, start_time, end_time = speech_detector.get_next_utter(
-            stream, utterance_start, utterance_end)
+            stream, utterance_start(pub_screen), utterance_end(pub_screen))
         if aud_data is None:
             rospy.loginfo("Node terminating")
             break
