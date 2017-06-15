@@ -37,6 +37,9 @@
         <!-- param for cleaning up audio and transcript data after node ends /-->
         <param    name ="cleanup" value="True"  />
 
+        <!-- param for displaying messages on the robot display /-->
+        <param    name ="baxter_display_output" value="False"  /> 
+
         <!-- param for unit and functional testing /-->
         <param    name ="testing" value="False"  /> 
 
