@@ -231,7 +231,9 @@ def main():
                 first_found = [input_name.lower() in d.lower() for d in device_list].index(True)
                 input_idx = first_found
             except ValueError:
-                pass
+                rospy.logwarn(
+                    "No device found for name '%s', falling back to default."
+                    % input_name)
 
     try:
         rospy.loginfo("Using device: " + p.get_device_info_by_index(input_idx)['name'])
