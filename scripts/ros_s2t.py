@@ -95,7 +95,7 @@ def generate_msg(text, confidence, start_time, end_time, pub_text,
     msg.received_time = rospy.get_rostime()
     msg.transcript = text
     msg.confidence = confidence
-    rospy.logwarn("%s, confidence:%f" % (text, confidence))
+    rospy.logwarn("{}, confidence: {}".format(text, confidence))
     pub_text.publish(msg)
     pub_screen_func(text)
     writer.writerow([msg.start_time, msg.end_time, msg.speech_duration,
