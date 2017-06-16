@@ -72,7 +72,7 @@ def record_to_file(sample_width, data, sn, rate):
     wf.setframerate(rate)
     wf.writeframes(data)
     wf.close()
-    rospy.loginfo('file saved')
+    rospy.logdebug('file saved')
 
 
 def expand_dir(speech_history_dir):
@@ -152,7 +152,7 @@ def utterance_start(pub_screen_func):
 
 def utterance_end(pub_screen_func):
     def aux():
-        rospy.logwarn('audio segment completed')
+        rospy.loginfo('audio segment completed')
         pub_screen_func("Recognizing")
     return aux
 
@@ -219,6 +219,8 @@ def main():
     """
     p = pyaudio.PyAudio()
     device_list = [p.get_device_info_by_index(i)['name'] for i in range(p.get_device_count())]
+    rospy.logdebug('Available devices:' + ''.join(
+        ['\n  - [%d]: %s' % d for d in enumerate(device_list)]))
     rospy.set_param('/ros_speech2text/available_audio_device', device_list)
 
     if input_idx is None:

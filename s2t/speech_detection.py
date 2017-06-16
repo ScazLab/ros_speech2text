@@ -118,7 +118,7 @@ class SpeechDetector:
 
     def __init__(self, rate, threshold, dynamic_threshold=False,
                  dynamic_threshold_frame=3, chunk_size=None,
-                 min_average_volume=0.,verbose=False):
+                 min_average_volume=0., verbose=False):
         self.rate = rate
         self.verbose = verbose
         if dynamic_threshold:
@@ -146,7 +146,8 @@ class SpeechDetector:
         # TODO: should be a debug
         if not self.silence_detect.is_static and self.verbose:
             rospy.loginfo("[AVG_VOLUME,VOLUME] = " +
-                          str(self.silence_detect.average_volume) + " , "+ str(max(np.abs(chunk))))
+                          str(self.silence_detect.average_volume) +
+                          " , " + str(max(np.abs(chunk))))
         if not silent and not self.in_utterance:
             # Check whether to start collecting utterance
             if not self.silence_detect.is_static:  # TODO: Why only for dynamic?
@@ -157,7 +158,7 @@ class SpeechDetector:
                     self.n_peaks >= self.dyn_thr_frame):
                 self.in_utterance = True
                 self.chunks.pop()
-                rospy.logwarn('collecting audio segment')
+                rospy.loginfo('collecting audio segment')
                 self.start_time = rospy.get_rostime()
         if silent and not self.in_utterance:
             self.silence_detect.update_average(chunk)
