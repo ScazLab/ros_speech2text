@@ -5,9 +5,9 @@ import io
 import os
 import sys
 import csv
-import thread
 import wave
 import pyaudio
+from threading import Thread
 from google.cloud import speech
 from google.gax.errors import RetryError
 from struct import pack
@@ -256,7 +256,8 @@ def main():
 
     # Start thread for checking operation results.
     # Operations are stored in the global variable OPERATION_QUEUE
-    thread.start_new_thread(check_operation, (pub_text, pub_screen_func, writer))
+    thread = Thread(target=check_operation, args=(pub_text, pub_screen_func, writer))
+    thread.start()
 
     # Main loop for fetching audio and making operation requests.
     while not rospy.is_shutdown() and not TESTING_MODE:
