@@ -127,6 +127,7 @@ def check_operation(pub_text, pub_screen_func, writer):
                         OPERATION_QUEUE.remove(op)
         except Exception as e:
             rospy.logerr("Error in speech recognition thread: {}".format(e))
+            OPERATION_QUEUE = []
         rospy.sleep(1)
 
 
