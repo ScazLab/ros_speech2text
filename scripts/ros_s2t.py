@@ -203,6 +203,7 @@ def main():
     SPEECH_HISTORY_DIR = rospy.get_param('/ros_speech2text/speech_history', '~/.ros/ros_speech2text/speech_history')
     SPEECH_HISTORY_DIR = expand_dir(SPEECH_HISTORY_DIR)
     input_idx = rospy.get_param(node_name + '/audio_device_idx', None)
+    input_name = rospy.get_param(node_name + '/audio_device_name', None)
 
     speech_detector = SpeechDetector(
         rate,
@@ -225,6 +226,12 @@ def main():
 
     if input_idx is None:
         input_idx = p.get_default_input_device_info()['index']
+        if input_name is not None:
+            try:
+                first_found = [input_name.lower() in d.lower() for d in device_list].index(True)
+                input_idx = first_found
+            except ValueError:
+                pass
 
     try:
         rospy.loginfo("Using device: " + p.get_device_info_by_index(input_idx)['name'])
