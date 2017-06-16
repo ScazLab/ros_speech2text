@@ -112,18 +112,21 @@ def check_operation(pub_text, pub_screen_func, writer):
     """
     global OPERATION_QUEUE
     while not rospy.is_shutdown():
-        for op in OPERATION_QUEUE[:]:
-            if op[0].complete:
-                for result in op[0].results:
-                    generate_msg(result.transcript, result.confidence, op[1],
-                                 op[2], pub_text, pub_screen_func, writer)
-                OPERATION_QUEUE.remove(op)
-            else:
-                try:
-                    op[0].poll()
-                except ValueError:
-                    rospy.logerr("No good results returned!")
+        try:
+            for op in OPERATION_QUEUE[:]:
+                if op[0].complete:
+                    for result in op[0].results:
+                        generate_msg(result.transcript, result.confidence, op[1],
+                                     op[2], pub_text, pub_screen_func, writer)
                     OPERATION_QUEUE.remove(op)
+                else:
+                    try:
+                        op[0].poll()
+                    except ValueError:
+                        rospy.logerr("No good results returned!")
+                        OPERATION_QUEUE.remove(op)
+        except Exception as e:
+            rospy.logerr("Error in speech recognition thread: {}".format(e))
         rospy.sleep(1)
 
 
