@@ -91,7 +91,7 @@ def generate_msg(text, confidence, start_time, end_time, pub_text,
     msg = transcript()
     msg.start_time = start_time
     msg.end_time = end_time
-    msg.speech_duration = start_time - end_time
+    msg.speech_duration = end_time - start_time
     msg.received_time = rospy.get_rostime()
     msg.transcript = text
     msg.confidence = confidence
