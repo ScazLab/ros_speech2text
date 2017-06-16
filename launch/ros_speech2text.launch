@@ -8,7 +8,7 @@
     <!-- starts node for asynchronous s2t /-->
     <node pkg="ros_speech2text" name="ros_speech2text" type="ros_s2t.py" output="screen">
         <!-- device ID of audio source. If unknown, launch once and get param /ros_speech2text/available_audio_device /-->
-        <param    name ="audio_device_idx" value="0"  />
+        <param    name ="audio_device_idx" value="3" />
 
         <!-- rate for your audio capturing device /-->
         <param    name ="audio_rate"      value="44100" />
@@ -38,10 +38,10 @@
         <param    name ="cleanup" value="True"  />
 
         <!-- param for displaying messages on the robot display /-->
-        <param    name ="baxter_display_output" value="False"  /> 
+        <param    name ="baxter_display_output" value="False"  />
 
         <!-- param for unit and functional testing /-->
-        <param    name ="testing" value="False"  /> 
+        <param    name ="testing" value="False"  />
 
         <!-- list of context clues for speech recognition /-->
         <rosparam param="speech_context">
