@@ -8,7 +8,8 @@ import csv
 import thread
 import wave
 import pyaudio
-import google
+from google.cloud import speech
+from google.gax.errors import RetryError
 from struct import pack
 
 import rospy
@@ -48,7 +49,7 @@ def recog(async_mode, speech_client, sn, context, rate, debug=False):
         try:
             operation = speech_client.speech_api.async_recognize(
                 sample=audio_sample, speech_context=context)
-        except (ValueError, google.gax.errors.RetryError):
+        except (ValueError, RetryError):
             rospy.logerr("Audio Segment too long. Unable to recognize")
         return operation
     else:
@@ -235,7 +236,7 @@ def main():
         sys.exit(1)
     sample_width = p.get_sample_size(FORMAT)
 
-    speech_client = google.cloud.speech.Client()
+    speech_client = speech.Client()
     sn = 0
 
     csv_file = open(os.path.join(SPEECH_HISTORY_DIR, 'transcript'), 'wb')
