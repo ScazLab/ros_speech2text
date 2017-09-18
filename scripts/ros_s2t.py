@@ -19,6 +19,7 @@ from ros_speech2text.msg import transcript
 from s2t.speech_detection import SpeechDetector
 
 
+TOPIC_BASE = '/speech_to_text'
 SPEECH_HISTORY_DIR = None
 FORMAT = pyaudio.paInt16
 run_flag = True
@@ -86,8 +87,8 @@ def expand_dir(speech_history_dir):
     return speech_history_dir
 
 
-def generate_msg(text, confidence, start_time, end_time, pub_text,
-                 pub_screen_func, writer):
+def generate_msg(text, confidence, start_time, end_time, pub_transcript,
+                 pub_text, writer):
     msg = transcript()
     msg.start_time = start_time
     msg.end_time = end_time
@@ -96,14 +97,14 @@ def generate_msg(text, confidence, start_time, end_time, pub_text,
     msg.transcript = text
     msg.confidence = confidence
     rospy.logwarn("{}, confidence: {}".format(text, confidence))
-    pub_text.publish(msg)
-    pub_screen_func(text)
+    pub_transcript.publish(msg)
+    pub_text.publish(text)
     writer.writerow([msg.start_time, msg.end_time, msg.speech_duration,
                      msg.transcript, msg.confidence])
     return msg
 
 
-def check_operation(pub_text, pub_screen_func, writer):
+def check_operation(pub_transcript, pub_text, writer):
     """
     This function is intended to be run as a seperate thread that repeatedly
     checks if any recog operation has finished.
@@ -117,7 +118,7 @@ def check_operation(pub_text, pub_screen_func, writer):
                 if op[0].complete:
                     for result in op[0].results:
                         generate_msg(result.transcript, result.confidence, op[1],
-                                     op[2], pub_text, pub_screen_func, writer)
+                                     op[2], pub_transcript, pub_text, writer)
                     OPERATION_QUEUE.remove(op)
                 else:
                     try:
@@ -148,16 +149,16 @@ def cleanup():
     os.rmdir(speech_directory)
 
 
-def utterance_start(pub_screen_func):
+def utterance_start(pub_text):
     def aux():
-        pub_screen_func("Sentence Started")
+        pub_text.publish("Sentence Started")
     return aux
 
 
-def utterance_end(pub_screen_func):
+def utterance_end(pub_text):
     def aux():
         rospy.loginfo('audio segment completed')
-        pub_screen_func("Recognizing")
+        pub_text.publish("Recognizing")
     return aux
 
 
@@ -188,13 +189,8 @@ def main():
     # Setting up ros params
     rospy.init_node('speech2text_engine', anonymous=True)
     node_name = rospy.get_name()
-    pub_text = rospy.Publisher(node_name + '/user_output', transcript, queue_size=10)
-    if rospy.get_param(node_name + '/baxter_display_output', False):
-        pub_screen = rospy.Publisher('/svox_tts/speech_output', String, queue_size=10)
-        pub_screen_func = pub_screen.publish
-    else:
-        def pub_screen_func(*args):
-            pass
+    pub_transcript = rospy.Publisher(TOPIC_BASE + '/transcript', transcript, queue_size=10)
+    pub_text = rospy.Publisher(TOPIC_BASE + '/text', String, queue_size=10)
     async_mode = rospy.get_param(node_name + '/async_mode', True)
     rate = rospy.get_param(node_name + '/audio_rate', 16000)
     TESTING_MODE = rospy.get_param(node_name + '/testing', False)
@@ -260,13 +256,13 @@ def main():
 
     # Start thread for checking operation results.
     # Operations are stored in the global variable OPERATION_QUEUE
-    thread = Thread(target=check_operation, args=(pub_text, pub_screen_func, writer))
+    thread = Thread(target=check_operation, args=(pub_transcript, pub_text, writer))
     thread.start()
 
     # Main loop for fetching audio and making operation requests.
     while not rospy.is_shutdown() and not TESTING_MODE:
         aud_data, start_time, end_time = speech_detector.get_next_utter(
-            stream, utterance_start(pub_screen_func), utterance_end(pub_screen_func))
+            stream, utterance_start(pub_text), utterance_end(pub_text))
         if aud_data is None:
             rospy.loginfo("Node terminating")
             break
@@ -277,7 +273,7 @@ def main():
             OPERATION_QUEUE.append([operation, start_time, end_time])
         else:
             transc, confidence = recog(async_mode, speech_client, sn, context, speech_detector.rate)
-            generate_msg(transc, confidence, start_time, end_time, pub_text, pub_screen_func, writer)
+            generate_msg(transc, confidence, start_time, end_time, pub_transcript, pub_text, writer)
         sn += 1
 
     """
