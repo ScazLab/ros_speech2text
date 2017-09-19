@@ -184,12 +184,13 @@ class SpeechDetector:
         """
         stream.start_stream()  # TODO: Why not record during recognition
         self.reset()
+        previously = False
 
         while not self.found:
             # main loop for audio capturing
-            if self.in_utterance:  # TODO: merge with other message
-                # pub_screen.publish("Sentence Started")
+            if self.in_utterance and not previously:
                 start_callback()
+            previously = self.in_utterance
 
             if rospy.is_shutdown():
                 return None, None, None
@@ -202,8 +203,6 @@ class SpeechDetector:
         stream.stop_stream()
         end_time = rospy.get_rostime()
 
-        # rospy.logwarn('audio segment completed')
-        # pub_screen.publish("Recognizing")
         end_callback()
 
         r = normalize(np.hstack(self.chunks))
