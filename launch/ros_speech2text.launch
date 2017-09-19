@@ -14,7 +14,7 @@
         <!-- <param    name ="audio_device_idx" value="name" /> -->
 
         <!-- rate for your audio capturing device /-->
-        <param    name ="audio_rate"      value="44100" />
+        <param    name ="audio_rate" value="44100" />
 
         <!-- param for static thresholding /-->
         <param    name ="audio_threshold" value="700"   />
@@ -39,9 +39,6 @@
 
         <!-- param for cleaning up audio and transcript data after node ends /-->
         <param    name ="cleanup" value="True"  />
-
-        <!-- param for unit and functional testing /-->
-        <param    name ="testing" value="False"  />
 
         <!-- list of context clues for speech recognition /-->
         <rosparam param="speech_context">
