@@ -122,7 +122,7 @@ class SpeechRecognizer(object):
             aud_data, start_time, end_time = self.speech_detector.get_next_utter(
                 self.stream, *self.get_utterance_start_end_callbacks(sn))
             if aud_data is None:
-                rospy.loginfo("Node terminating")
+                rospy.loginfo("No more data")
                 break
             self.record_to_file(aud_data, sn)
             if self.async:
@@ -133,6 +133,7 @@ class SpeechRecognizer(object):
                 transc, confidence = self.recog(sn)
                 self.utterance_decoded(sn, transc, confidence, start_time, end_time)
             sn += 1
+        self.terminate()
 
     def terminate(self, exitcode=0):
         self.stream.close()
