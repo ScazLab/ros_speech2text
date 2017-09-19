@@ -39,6 +39,7 @@ class SpeechRecognizer(object):
     def __init__(self):
         self._init_history_directory()
         self.node_name = rospy.get_name()
+        self.print_level = rospy.get_param('/print_level', 0)
         self.pub_transcript = rospy.Publisher(
             self.TOPIC_BASE + '/transcript', transcript, queue_size=10)
         self.pub_text = rospy.Publisher(
@@ -90,12 +91,14 @@ class SpeechRecognizer(object):
                                  for d in device_list
                                  ].index(True)
                 except ValueError:
-                    rospy.logwarn(
+                    rospy.logerr(
                         "No device found for name '%s', falling back to default."
                         % input_name)
         try:
-            rospy.loginfo("Using device: {}".format(
-                self.pa_handler.get_device_info_by_index(input_idx)['name']))
+            rospy.loginfo("{} using device: {}".format(
+                self.node_name,
+                self.pa_handler.get_device_info_by_index(input_idx)['name'])
+            )
             self.stream = self.pa_handler.open(
                 format=FORMAT, channels=1, rate=self.sample_rate, input=True,
                 start=False, input_device_index=input_idx, output=False,
@@ -122,7 +125,7 @@ class SpeechRecognizer(object):
             aud_data, start_time, end_time = self.speech_detector.get_next_utter(
                 self.stream, *self.get_utterance_start_end_callbacks(sn))
             if aud_data is None:
-                rospy.loginfo("No more data")
+                rospy.loginfo("No more data, exiting...")
                 break
             self.record_to_file(aud_data, sn)
             if self.async:
@@ -143,14 +146,14 @@ class SpeechRecognizer(object):
             shutil.rmtree(self.history_dir)
 
     def utterance_start(self, utterance_id):
-        rospy.loginfo('Utterance started')
-        self.pub_text.publish("Utterance Started")
+        if self.print_level > 1:
+            rospy.loginfo('Utterance started')
         self.pub_event.publish(
             self.get_event_base_message(event.STARTED, utterance_id))
 
     def utterance_end(self, utterance_id):
-        rospy.loginfo('Utterance completed')
-        self.pub_text.publish("Recognizing")
+        if self.print_level > 1:
+            rospy.loginfo('Utterance completed')
         self.pub_event.publish(
             self.get_event_base_message(event.STOPPED, utterance_id))
 
@@ -169,7 +172,8 @@ class SpeechRecognizer(object):
                                                      start_time, end_time)
         event_msg = self.get_event_base_message(event.DECODED, utterance_id)
         event_msg.transcript = transcript_msg
-        rospy.logwarn("{} [confidence: {}]".format(transcription, confidence))
+        if self.print_level > 0:
+            rospy.loginfo("{} [confidence: {}]".format(transcription, confidence))
         self.pub_transcript.publish(transcript_msg)
         self.pub_text.publish(transcription)
         self.pub_event.publish(event_msg)
@@ -178,7 +182,8 @@ class SpeechRecognizer(object):
             transcription, confidence])
 
     def utterance_failed(self, utterance_id, start_time, end_time):
-        rospy.logerr("No good results returned!")
+        if self.print_level > 1:
+            rospy.loginfo("No good results returned!")
         transcript_msg = self.get_transcript_message("", 0., start_time, end_time)
         event_msg = self.get_event_base_message(event.FAILED, utterance_id)
         event_msg.transcript = transcript_msg
