@@ -156,7 +156,8 @@ class SpeechDetector:
                 self.chunks.append(chunk)
             if (self.silence_detect.is_static or
                     self.n_peaks >= self.dyn_thr_frame):
-                rospy.loginfo('collecting audio segment')
+                if self.verbose:
+                    rospy.loginfo('collecting audio segment')
                 self.start_time = rospy.get_rostime()
                 self.in_utterance = True
         if silent and not self.in_utterance:
