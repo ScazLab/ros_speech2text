@@ -12,7 +12,7 @@ catkin_python_setup()
 
 ## ROS messages, services and actions
 
-add_message_files(FILES transcript.msg)
+add_message_files(FILES transcript.msg event.msg)
 
 generate_messages(DEPENDENCIES std_msgs)
 catkin_package(

@@ -11,8 +11,8 @@ from google.cloud import speech
 from google.gax.errors import RetryError
 
 import rospy
-from std_msgs.msg import String
-from ros_speech2text.msg import transcript
+from std_msgs.msg import String, Header
+from ros_speech2text.msg import transcript, event
 
 from .speech_detection import SpeechDetector
 
@@ -39,10 +39,12 @@ class SpeechRecognizer(object):
     def __init__(self):
         self._init_history_directory()
         self.node_name = rospy.get_name()
-        self.pub_transcript = rospy.Publisher(self.TOPIC_BASE + '/transcript',
-                                              transcript, queue_size=10)
-        self.pub_text = rospy.Publisher(self.TOPIC_BASE + '/text', String,
-                                        queue_size=10)
+        self.pub_transcript = rospy.Publisher(
+            self.TOPIC_BASE + '/transcript', transcript, queue_size=10)
+        self.pub_text = rospy.Publisher(
+            self.TOPIC_BASE + '/text', String, queue_size=10)
+        self.pub_event = rospy.Publisher(
+            self.TOPIC_BASE + '/log', event, queue_size=10)
         self.sample_rate = rospy.get_param(self.node_name + '/audio_rate', 16000)
         self.async = rospy.get_param(self.node_name + '/async_mode', True)
         dynamic_thresholding = rospy.get_param(
@@ -50,7 +52,8 @@ class SpeechRecognizer(object):
         if not dynamic_thresholding:
             threshold = rospy.get_param(self.node_name + '/audio_threshold', 700)
         else:
-            threshold = rospy.get_param(self.node_name + '/audio_dynamic_percentage', 50)
+            threshold = rospy.get_param(
+                self.node_name + '/audio_dynamic_percentage', 50)
         self.speech_detector = SpeechDetector(
             self.sample_rate,
             threshold,
@@ -117,17 +120,18 @@ class SpeechRecognizer(object):
             thread.start()
         while not rospy.is_shutdown():
             aud_data, start_time, end_time = self.speech_detector.get_next_utter(
-                self.stream, self.utterance_start, self.utterance_end)
+                self.stream, *self.get_utterance_start_end_callbacks(sn))
             if aud_data is None:
                 rospy.loginfo("Node terminating")
                 break
             self.record_to_file(aud_data, sn)
             if self.async:
                 operation = self.recog(sn)
-                self.operation_queue.append([operation, start_time, end_time])
+                if operation is not None:  # TODO: Improve
+                    self.operation_queue.append([sn, operation, start_time, end_time])
             else:
                 transc, confidence = self.recog(sn)
-                self.utterance_decoded(transc, confidence, start_time, end_time)
+                self.utterance_decoded(sn, transc, confidence, start_time, end_time)
             sn += 1
 
     def terminate(self, exitcode=0):
@@ -137,14 +141,50 @@ class SpeechRecognizer(object):
         if rospy.get_param(rospy.get_name() + '/cleanup', True):
             shutil.rmtree(self.history_dir)
 
-    def utterance_start(self):
-        self.pub_text.publish("Sentence Started")
+    def utterance_start(self, utterance_id):
+        rospy.loginfo('Utterance started')
+        self.pub_text.publish("Utterance Started")
+        self.pub_event.publish(
+            self.get_event_base_message(event.STARTED, utterance_id))
 
-    def utterance_end(self):
-        rospy.loginfo('audio segment completed')
+    def utterance_end(self, utterance_id):
+        rospy.loginfo('Utterance completed')
         self.pub_text.publish("Recognizing")
+        self.pub_event.publish(
+            self.get_event_base_message(event.STOPPED, utterance_id))
 
-    def utterance_decoded(self, transcription, confidence, start_time, end_time):
+    def get_utterance_start_end_callbacks(self, utterance_id):
+        def start():
+            self.utterance_start(utterance_id)
+
+        def end():
+            self.utterance_end(utterance_id)
+
+        return start, end
+
+    def utterance_decoded(self, utterance_id, transcription, confidence,
+                          start_time, end_time):
+        transcript_msg = self.get_transcript_message(transcription, confidence,
+                                                     start_time, end_time)
+        event_msg = self.get_event_base_message(event.DECODED, utterance_id)
+        event_msg.transcript = transcript_msg
+        rospy.logwarn("{} [confidence: {}]".format(transcription, confidence))
+        self.pub_transcript.publish(transcript_msg)
+        self.pub_text.publish(transcription)
+        self.pub_event.publish(event_msg)
+        self.csv_writer.writerow([
+            start_time, end_time, transcript_msg.speech_duration,
+            transcription, confidence])
+
+    def utterance_failed(self, utterance_id, start_time, end_time):
+        rospy.logerr("No good results returned!")
+        transcript_msg = self.get_transcript_message("", 0., start_time, end_time)
+        event_msg = self.get_event_base_message(event.FAILED, utterance_id)
+        event_msg.transcript = transcript_msg
+        self.pub_event.publish(event_msg)
+
+    def get_transcript_message(self, transcription, confidence, start_time,
+                               end_time):
         msg = transcript()
         msg.start_time = start_time
         msg.end_time = end_time
@@ -152,20 +192,24 @@ class SpeechRecognizer(object):
         msg.received_time = rospy.get_rostime()
         msg.transcript = transcription
         msg.confidence = confidence
-        rospy.logwarn("{} [confidence: {}]".format(transcription, confidence))
-        self.pub_transcript.publish(msg)
-        self.pub_text.publish(transcription)
-        self.csv_writer.writerow([msg.start_time, msg.end_time, msg.speech_duration,
-                                  msg.transcript, msg.confidence])
+        return msg
 
-    def sentence_file(self, sentence_id):
-        file_name = 'sentence_{}.wav'.format(sentence_id)
+    def get_event_base_message(self, evt, utterance_id):
+        msg = event()
+        msg.header = Header()
+        msg.header.stamp = rospy.Time.now()
+        msg.event = evt
+        msg.utterance_id = utterance_id
+        return msg
+
+    def utterance_file(self, utterance_id):
+        file_name = 'utterance_{}.wav'.format(utterance_id)
         return os.path.join(self.history_dir, file_name)
 
-    def record_to_file(self, data, sentence_id):
+    def record_to_file(self, data, utterance_id):
         """Saves audio data to a file"""
         data = pack('<' + ('h' * len(data)), *data)
-        path = self.sentence_file(sentence_id)
+        path = self.utterance_file(utterance_id)
         wf = wave.open(path, 'wb')
         wf.setnchannels(1)
         wf.setsampwidth(self.sample_width)
@@ -174,13 +218,13 @@ class SpeechRecognizer(object):
         wf.close()
         rospy.logdebug('File saved to {}'.format(path))
 
-    def recog(self, sn):
+    def recog(self, utterance_id):
         """
         Constructs a recog operation with the audio file specified by sn
         The operation is an asynchronous api call
         """
         context = rospy.get_param(self.node_name + '/speech_context', [])
-        path = self.sentence_file(sn)
+        path = self.utterance_file(utterance_id)
 
         with io.open(path, 'rb') as audio_file:
             content = audio_file.read()
@@ -194,9 +238,9 @@ class SpeechRecognizer(object):
             try:
                 operation = self.speech_client.speech_api.async_recognize(
                     sample=audio_sample, speech_context=context)
+                return operation
             except (ValueError, RetryError):
                 rospy.logerr("Audio Segment too long. Unable to recognize")
-            return operation
         else:
             alternatives = self.speech_client.speech_api.sync_recognize(
                 sample=audio_sample, speech_context=context)
@@ -213,16 +257,18 @@ class SpeechRecognizer(object):
         while not rospy.is_shutdown():
             try:
                 for op in self.operation_queue[:]:
-                    if op[0].complete:
-                        for result in op[0].results:
+                    utterance_id, operation, start_time, end_time = op
+                    if operation.complete:
+                        for result in operation.results:
                             self.utterance_decoded(
-                                result.transcript, result.confidence, op[1], op[2])
+                                utterance_id, result.transcript, result.confidence,
+                                start_time, end_time)
                         self.operation_queue.remove(op)
                     else:
                         try:
-                            op[0].poll()
+                            operation.poll()
                         except ValueError:
-                            rospy.logerr("No good results returned!")
+                            self.utterance_failed(utterance_id, start_time, end_time)
                             self.operation_queue.remove(op)
             except Exception as e:
                 rospy.logerr("Error in speech recognition thread: {}".format(e))
