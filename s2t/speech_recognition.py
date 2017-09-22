@@ -205,6 +205,7 @@ class SpeechRecognizer(object):
         msg.header.stamp = rospy.Time.now()
         msg.event = evt
         msg.utterance_id = utterance_id
+        msg.audio_path = self.utterance_file(utterance_id)
         return msg
 
     def utterance_file(self, utterance_id):

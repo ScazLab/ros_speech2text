@@ -7,3 +7,4 @@ Header header
 int32 event
 int32 utterance_id
 transcript transcript
+string audio_path
