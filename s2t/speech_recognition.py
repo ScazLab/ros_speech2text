@@ -63,7 +63,6 @@ class SpeechRecognizer(object):
                 self.node_name + '/audio_dynamic_frame', 3),
             min_average_volume=rospy.get_param(
                 self.node_name + '/audio_min_avg', 100),
-            verbose=rospy.get_param(self.node_name + '/verbosity', True)
         )
         self._init_stream()
         self._init_csv()
