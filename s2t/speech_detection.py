@@ -114,11 +114,13 @@ class SpeechDetector:
 
     :param threshold: float
         Static or dynamic threshold. Interpreted as a percentage when dynamic.
+    :param n_silent: int
+        Number of silent chunks to end detected utterance.
     """
 
     def __init__(self, rate, threshold, dynamic_threshold=False,
                  dynamic_threshold_frame=3, chunk_size=None,
-                 min_average_volume=0.):
+                 min_average_volume=0., n_silent=10):
         self.rate = rate
         if dynamic_threshold:
             self.silence_detect = DynamicSilenceDetector(
@@ -129,6 +131,7 @@ class SpeechDetector:
             chunk_size = self.rate // 10
         self.chunk_size = chunk_size
         self.dyn_thr_frame = dynamic_threshold_frame
+        self.max_n_silent = n_silent
         self.reset()
 
     def reset(self):
@@ -170,7 +173,7 @@ class SpeechDetector:
 
     @property
     def found(self):
-        return self.n_silent > 10
+        return self.n_silent > self.max_n_silent
 
     def get_next_utter(self, stream, start_callback, end_callback):
         """

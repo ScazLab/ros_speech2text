@@ -35,6 +35,9 @@
         <!-- min value of average volume to prevent system from being too sensitive in case of constantly quiet environments /-->
         <!-- <param    name ="audio_min_avg" value="100"  /> -->
 
+        <!-- for n consecutive silent frames the recording ends /-->
+        <!-- <param    name ="n_silent_chunks" value="10"  /> -->
+
         <!-- param for cleaning up audio and transcript data after node ends /-->
         <!-- <param    name ="cleanup" value="True"  /> -->
 
