@@ -3,7 +3,6 @@ from threading import Lock
 import rospy
 from std_msgs.msg import String
 
-from s2t.speech_recognition import SpeechRecognizer
 from s2t.speech_recognition.msg import event
 
 
@@ -18,7 +17,7 @@ class ListeningToDisplay(object):
     def __init__(self, display_topic):
         rospy.init_node('Display listening')
         rospy.set_param(self.DURATION_PARAM, self.DURATION)
-        self.sub = rospy.Subscriber(SpeechRecognizer.TOPIC_BASE + '/log',
+        self.sub = rospy.Subscriber('/speech_to_text/log',
                                     event, self._event_cb)
         self.pub = rospy.Publisher(display_topic, String, queue_size=2)
         self._listening = False
