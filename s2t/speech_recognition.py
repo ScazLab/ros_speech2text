@@ -66,6 +66,9 @@ class SpeechRecognizer(object):
             n_silent=rospy.get_param(
                 self.node_name + '/n_silent_chunks', 10),
         )
+        if self.print_level > 0:
+            rospy.loginfo('Sample Rate: {}'.format(self.sample_rate))
+
         self._init_stream()
         self._init_csv()
         self.speech_client = speech.Client()
