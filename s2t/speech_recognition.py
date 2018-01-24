@@ -139,11 +139,15 @@ class SpeechRecognizer(object):
             sn += 1
         self.terminate()
 
-    def terminate(self, exitcode=0):
-        self.stream.close()
-        self.pa_handler.terminate()
-        self.csv_file.close()
-        if rospy.get_param(rospy.get_name() + '/cleanup', True):
+    def terminate(self):
+        if hasattr(self, "stream"):
+            self.stream.close()
+        if hasattr(self, "pa_handler"):
+            self.pa_handler.terminate()
+        if hasattr(self, "csv_file"):
+            self.csv_file.close()
+        if (hasattr(self, "history_dir") and
+                rospy.get_param(rospy.get_name() + '/cleanup', True)):
             shutil.rmtree(self.history_dir)
 
     def utterance_start(self, utterance_id):
