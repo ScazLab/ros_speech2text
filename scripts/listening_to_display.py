@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from threading import Lock
 
 import rospy
@@ -15,11 +17,11 @@ class ListeningToDisplay(object):
     DURATION_PARAM = 'baxter_display/speech_duration'
 
     def __init__(self, display_topic):
-        rospy.init_node('Display listening')
-        rospy.set_param(self.DURATION_PARAM, self.DURATION)
+        rospy.init_node('display_listening')
+        rospy.sleep(5)
         self.sub = rospy.Subscriber('/speech_to_text/log',
                                     event, self._event_cb)
-        self.pub = rospy.Publisher(display_topic, String, queue_size=2)
+        self.pub = rospy.Publisher(display_topic, String, queue_size=10)
         self._listening = False
         self._lock = Lock()
 
@@ -28,8 +30,11 @@ class ListeningToDisplay(object):
         self.last_msg = rospy.Time.now()
         while self.running and not rospy.is_shutdown():
             if self.listening and (
-                    rospy.Time.now() - self.last_msg) > self.DURATION:
+                    rospy.Time.now() - self.last_msg
+                    ) > rospy.Duration(self.DURATION):
                 self.pub.publish(self.MESSAGE)
+                self.last_msg = rospy.Time.now()
+            rospy.sleep(self.PERIOD)
 
     @property
     def listening(self):
