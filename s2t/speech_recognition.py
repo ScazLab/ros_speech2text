@@ -33,7 +33,7 @@ class SpeechRecognizer(object):
 
     TOPIC_BASE = '/speech_to_text'
 
-    class InvalidDeviceID(ValueError):
+    class InvalidDevice(ValueError):
         pass
 
     def __init__(self):
@@ -92,9 +92,9 @@ class SpeechRecognizer(object):
                                  for d in device_list
                                  ].index(True)
                 except ValueError:
-                    rospy.logerr(
-                        "No device found for name '%s', falling back to default."
-                        % input_name)
+                    self.terminate()
+                    raise self.InvalidDevice(
+                        "No device found for name '%s'." % input_name)
         try:
             rospy.loginfo("{} using device: {}".format(
                 self.node_name,
@@ -106,7 +106,7 @@ class SpeechRecognizer(object):
                 frames_per_buffer=self.speech_detector.chunk_size)
         except IOError:
             self.terminate()
-            raise self.InvalidDeviceID(
+            raise self.InvalidDevice(
                 'Invalid device ID: {}. Available devices listed in rosparam '
                 '/ros_speech2text/available_audio_device'.format(input_idx))
         self.sample_width = self.pa_handler.get_sample_size(FORMAT)
