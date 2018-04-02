@@ -59,8 +59,7 @@ script:
 - catkin build $REPO_NAME $( [ -f $CATKIN_OPTIONS ] && cat $CATKIN_OPTIONS )
 - source devel/setup.bash
 - catkin build "$REPO_NAME" --catkin-make-args run_tests
-- catkin_test_results build/"$REPO_NAME" || (cat build/"$REPO_NAME"/test_results/"$REPO_NAME"/*.xml
-  ; false)
+- catkin_test_results build/"$REPO_NAME" || (cat build/"$REPO_NAME"/test_results/"$REPO_NAME"/*.xml ; false)
 after_success:
 - 'curl -H "Content-Type: application/json" --data ''{"source_type": "Branch", "source_name":
   "''$TRAVIS_BRANCH''"}'' -X POST $DOCKER_PUSH_URL'
