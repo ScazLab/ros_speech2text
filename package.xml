@@ -22,6 +22,7 @@
 
   <depend>rospy</depend>
   <depend>std_msgs</depend>
+  <depend>python-pyaudio</depend>
 
   <build_depend>rostest</build_depend>
 
