@@ -6,7 +6,7 @@ notifications:
   email: false
   slack:
     rooms:
-      secure: biz/WsHM8gINfHQZTunI46IxURYjXYqi5aKM1o750bOESq1zhB+rVBgBeTWil/18tlI7EwnuVA0GKaH3wzzna4k8BBaBUw00+G6WdaPiYT4NiDT7RuRiAuMpG9BlXyyYkdYbntChSF4D36FfsqbyIyqPQbaiHHMRFFKhZBzlM3TwKnAmgFt78VE1JnLI9XrOib0dI6bgeaRikrJDXmVYXwigkkkS9+3EC2AaW5kENX3BacE60ZcDTPQTrye8HGnOoKKKATbGhITgJErUFUn/GOluH8qauoBaVRBhQZWwUOq8M6sk1QRpwhZ2DZZCt+32Yra9Nuq3bavZ7lDIrQorAD5XGuPFw7mznJ81U3rkZ1nGNOqsqNTdXaoISVXqIRaLVZ9zENBBCyHmWRUrCRiSjqyM7P7d2Y/D3u0UVOJMI6V7WEEgSZyXc9oxH+KqAwf4ZuYSCy3lagej93lZUm1ENcuARe4/kqLiAgnf60oBxTcq2Z5m6r5rBT7dB82TlSUqwyOqAUkP6NrbfeMEaj8GBBUJCQLY4trSazmk0tjBrMDzzZ1ucvxiQ9dj6UH/NfFwpVNWT5/DPwhLdx6J7I3wvVhnlLADUtWiTdXc0g42Z/YIv6CTi2i1SSS3IHAcYlNLOblKQPo+2hW9ISwJF4z+XfqT/wKTxsSgcIZspbOlzSg=
+      secure: UpV+eMZyK6zzOz8S3c0YpCdAOMjBdApGM0ioESxK+g3HFqcgsurvJhHjRhJveZ5UPumkpMDIoOWNJmZ69+0AGh1oxgCFX38LZ6wR4TQ44+/8tyLDswraKTC/AyvFTQRXm5i/V7SWZzkdu2QNX4cOjEto8j7wEFVKicMZF25F0pPJ+EXHQvHSadx7jqIjTBQ9st0zjlHjXf7anzzeQwTbXxf+2XSjusoOdajlTVl1gvsQ19yz4dElb7GKrrqJjsp2OB4aOcT2sEKJO35xGSQjMZKoBUdOOvr9M99BO/WrmLLWBugE1opymkzLIgNMCerLyJ20DWbxfqUnFhY4vzW8rKaT0tRD3kW9G8F8LEytJnYvfzhe62CTXxmN9cC+wsfc4M+cJ1XM49DjEgvFJYS0+kp/IB0cbaLJy7h+t0HFTccuvSUB6G/FJ3+tYXRWxfx2vJzaQuaUPgdJTTsSLEPlSWgVkO3JC5OE4xxiULHJ120NpS7gAUMx0RAF9X67lc4yqVheUtJnbsyI+j47A+mI/hJkWme77uVABrpEgW7PEBUcUGw3dG3+1GErEbsrthyF+8am5GagMZUHR6gvcJg3wzns7HanHFXEYqcfNcIt8Ocx4Vxjo6ZX9Q713/bmhVBQekzOy3Rl1er/7DkEg0JxiQ9ebJz0gjE+37AUNZEPfwo=
     on_success: change
     on_failure: always
 env:
@@ -52,6 +52,7 @@ before_script:
 - cd ~/catkin_ws/src && wstool up
 - cd ~/catkin_ws
 - rosdep install -y --from-paths src --ignore-src --rosdistro $ROS_DISTRO
+- pip install --upgrade google-cloud
 script:
 - source /opt/ros/$ROS_DISTRO/setup.bash
 - cd ~/catkin_ws
@@ -59,7 +60,8 @@ script:
 - catkin build $REPO_NAME $( [ -f $CATKIN_OPTIONS ] && cat $CATKIN_OPTIONS )
 - source devel/setup.bash
 - catkin build "$REPO_NAME" --catkin-make-args run_tests
-- catkin_test_results build/"$REPO_NAME" || (cat build/"$REPO_NAME"/test_results/"$REPO_NAME"/*.xml ; false)
+- catkin_test_results build/"$REPO_NAME" || (cat build/"$REPO_NAME"/test_results/"$REPO_NAME"/*.xml
+  ; false)
 after_success:
 - 'curl -H "Content-Type: application/json" --data ''{"source_type": "Branch", "source_name":
   "''$TRAVIS_BRANCH''"}'' -X POST $DOCKER_PUSH_URL'
