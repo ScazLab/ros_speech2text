@@ -46,6 +46,6 @@
         </rosparam>
     </node>
 
-    <test test-name="test_ros_speech2text" pkg="ros_speech2text" type="test_speech_detection.py" />
+    <test test-name="test_ros_speech2text" pkg="ros_speech2text" type="test_speech_api.py" />
 
 </launch>

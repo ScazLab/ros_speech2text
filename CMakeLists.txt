@@ -28,8 +28,10 @@ include_directories(
 ## Test
 
 if(CATKIN_ENABLE_TESTING)
-  find_package(rostest REQUIRED)
-  add_rostest(test/test_s2t.test)
+  # Need to encrypt google cloud credentials before automating these tests
+  # find_package(rostest REQUIRED)
+  # add_rostest(test/test_s2t.test)
+  catkin_add_nosetests(test/test_speech_detection.py)
 endif()
 
 ## Install
