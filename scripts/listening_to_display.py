@@ -14,7 +14,7 @@ class ListeningToDisplay(object):
     MESSAGE = 'Listening...'
     # To set message duration on the display node
     DURATION = 1
-    DURATION_PARAM = 'baxter_display/speech_duration'
+    DURATION_PARAM = 'baxter_display/onscreen_duration'
 
     def __init__(self, display_topic):
         rospy.init_node('display_listening')
