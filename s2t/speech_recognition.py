@@ -273,7 +273,7 @@ class SpeechRecognizer(object):
             try:
                 for op in self.operation_queue[:]:
                     utterance_id, operation, start_time, end_time = op
-                    if operation.complete:
+                    if operation.complete and operation.results is not None:
                         for result in operation.results:
                             self.utterance_decoded(
                                 utterance_id, result.transcript, result.confidence,
