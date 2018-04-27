@@ -38,7 +38,5 @@ endif()
 
 install(PROGRAMS
   scripts/ros_s2t.py
-  scripts/listening_to_display.py
-  ## scripts/ros_speech2text_sync.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
