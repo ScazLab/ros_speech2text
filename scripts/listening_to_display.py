@@ -5,34 +5,36 @@ from threading import Lock
 import rospy
 from std_msgs.msg import String
 
-from s2t.speech_recognition.msg import event
+from ros_speech2text.msg import event
 
 
 class ListeningToDisplay(object):
 
     PERIOD = .1
-    MESSAGE = 'Listening...'
+    MESSAGE = 'Listening'
     # To set message duration on the display node
     DURATION = 1
     DURATION_PARAM = 'baxter_display/onscreen_duration'
 
     def __init__(self, display_topic):
-        rospy.init_node('display_listening')
+        rospy.init_node('listening_to_display')
         rospy.sleep(5)
         self.sub = rospy.Subscriber('/speech_to_text/log',
                                     event, self._event_cb)
         self.pub = rospy.Publisher(display_topic, String, queue_size=10)
         self._listening = False
         self._lock = Lock()
+        rospy.loginfo('Ready')
 
     def run(self):
         self.running = True
         self.last_msg = rospy.Time.now()
         while self.running and not rospy.is_shutdown():
-            if self.listening and (
-                    rospy.Time.now() - self.last_msg
-                    ) > rospy.Duration(self.DURATION):
-                self.pub.publish(self.MESSAGE)
+            if (rospy.Time.now() - self.last_msg) > rospy.Duration(self.DURATION):
+                if self.listening:
+                    self.pub.publish(self.MESSAGE)
+                else:
+                    self.pub.publish(' ')
                 self.last_msg = rospy.Time.now()
             rospy.sleep(self.PERIOD)
 
@@ -48,8 +50,10 @@ class ListeningToDisplay(object):
 
     def _event_cb(self, msg):
         if msg.event == event.STARTED:
+            rospy.loginfo('starting')
             self.listening = True
         elif msg.event == event.STOPPED:
+            rospy.loginfo('stopping')
             self.listening = False
 
 
