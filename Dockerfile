@@ -10,8 +10,8 @@ RUN cd ~/ros_ws/src \
 USER root
 RUN  cd ~/ros_ws \
      && rosdep install -y --from-paths src --ignore-src --rosdistro $ROS_DISTRO
-USER root
-RUN pip2 install --upgrade google-cloud
+USER ros
+RUN pip2 install --user --upgrade google-cloud --ignore-installed six
 USER ros
 RUN  cd ~/ros_ws && catkin build
 
