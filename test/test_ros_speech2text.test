@@ -6,7 +6,7 @@
     <env      name ="GOOGLE_APPLICATION_CREDENTIALS"   value="$(find ros_speech2text)/GCloud_SpeechAPI_Cred" />
 
     <!-- starts node for asynchronous s2t /-->
-    <node pkg="ros_speech2text" name="ros_speech2text" type="ros_s2t.py" output="screen">
+    <node pkg="ros_speech2text" name="ros_speech2text" type="ros_speech2text.py" output="screen">
         <!-- device ID of audio source. If unknown, launch once and get param /ros_speech2text/available_audio_device /-->
         <param    name ="audio_device_idx" value="0"  />
 

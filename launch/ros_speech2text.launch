@@ -6,7 +6,7 @@
     <arg name="print_level" default="0"/>
 
     <!-- starts node for asynchronous s2t /-->
-    <node pkg="ros_speech2text" name="ros_speech2text" type="ros_s2t.py" output="screen">
+    <node pkg="ros_speech2text" name="ros_speech2text" type="ros_speech2text.py" output="screen">
 
         <!-- location of the speech history for the session /-->
         <!-- <param    name ="speech_history"  value="~/.ros/ros_speech2text/speech_history" /> -->
