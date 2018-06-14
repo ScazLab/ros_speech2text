@@ -39,6 +39,7 @@ class SpeechRecognizer(object):
     def __init__(self):
         self._init_history_directory()
         self.node_name = rospy.get_name()
+        self.pid = rospy.get_param(self.node_name + '/pid', -1)
         self.print_level = rospy.get_param('/print_level', 0)
         self.pub_transcript = rospy.Publisher(
             self.TOPIC_BASE + '/transcript', transcript, queue_size=10)
@@ -206,6 +207,7 @@ class SpeechRecognizer(object):
         msg.received_time = rospy.get_rostime()
         msg.transcript = transcription
         msg.confidence = confidence
+        msg.pid = self.pid
         return msg
 
     def get_event_base_message(self, evt, utterance_id):
