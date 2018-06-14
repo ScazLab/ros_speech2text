@@ -6,7 +6,6 @@
   <url type="website">https://github.com/scazlab/ros_speech2text</url>
 
   <maintainer email="ken.cheng@yale.edu">Ken Cheng</maintainer>
-  <!-- <author email="jane.doe@example.com">Jane Doe</author> -->
 
   <!-- The *_depend tags are used to specify dependencies -->
   <!-- Dependencies can be catkin packages or system dependencies -->

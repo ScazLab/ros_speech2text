@@ -49,7 +49,7 @@ class SpeechRecognizer(object):
         self.pub_event = rospy.Publisher(
             self.TOPIC_BASE + '/log', event, queue_size=10)
         self.sample_rate = rospy.get_param(self.node_name + '/audio_rate', 16000)
-        self.async = rospy.get_param(self.node_name + '/async_mode', False)
+        self.async = rospy.get_param(self.node_name + '/async_mode', True)
         dynamic_thresholding = rospy.get_param(
             self.node_name + '/enable_dynamic_threshold', True)
         if not dynamic_thresholding:
