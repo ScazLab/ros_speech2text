@@ -32,18 +32,16 @@ def list_audio_devices(pyaudio_handler):
 class SpeechRecognizer(object):
 
     TOPIC_BASE = '/speech_to_text'
-    # Used if you dont want speech to be transcribed.
-    DUMMY_TRANSC = "Foo"
-    DUMMY_CONF = .69
 
     class InvalidDevice(ValueError):
         pass
 
-    def __init__(self, recognition_only=True):
+    def __init__(self):
         self._init_history_directory()
         self.node_name = rospy.get_name()
         self.print_level = rospy.get_param('/print_level', 0)
-        self.recognition_only = recognition_only # Controls transcription of speech
+        # If do_transcription = False, do not transcribe audio (and send a dummy transcript)
+        self.do_transcription =  rospy.get_param(self.node_name + '/do_transcription', True)
         self.pub_transcript = rospy.Publisher(
             self.TOPIC_BASE + '/transcript', transcript, queue_size=10)
         self.pub_text = rospy.Publisher(
@@ -70,6 +68,7 @@ class SpeechRecognizer(object):
             n_silent=rospy.get_param(
                 self.node_name + '/n_silent_chunks', 10),
         )
+        rospy.loginfo('Print level: {}'.format(self.print_level))
         if self.print_level > 0:
             rospy.loginfo('Sample Rate: {}'.format(self.sample_rate))
 
@@ -141,9 +140,9 @@ class SpeechRecognizer(object):
                 if operation is not None:  # TODO: Improve
                     self.operation_queue.append([sn, operation, start_time, end_time])
             else:
-                # Send only that you received speech if you dont want transcriptions.
-                if self.recognition_only:
-                    transc, confidence = (self.DUMMY_TRANSC, self.DUMMY_CONF)
+                # Send only that you received speech if you don't want transcriptions.
+                if not self.do_transcription:
+                    transc, confidence = ("dummy_transcript with no confidence", 0.0)
                 else:
                     transc, confidence = self.recog(sn)
                 self.utterance_decoded(sn, transc, confidence, start_time, end_time)
