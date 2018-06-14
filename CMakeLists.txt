@@ -15,14 +15,11 @@ catkin_python_setup()
 add_message_files(FILES transcript.msg event.msg)
 
 generate_messages(DEPENDENCIES std_msgs)
+
+## ROS package
+
 catkin_package(
- CATKIN_DEPENDS rospy std_msgs message_runtime
-)
-
-## Build
-
-include_directories(
-  ${catkin_INCLUDE_DIRS}
+  CATKIN_DEPENDS rospy std_msgs message_runtime
 )
 
 ## Test
