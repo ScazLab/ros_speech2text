@@ -32,15 +32,19 @@ def list_audio_devices(pyaudio_handler):
 class SpeechRecognizer(object):
 
     TOPIC_BASE = '/speech_to_text'
+    # Used if you dont want speech to be transcribed.
+    DUMMY_TRANSC = "Foo"
+    DUMMY_CONF = .69
 
     class InvalidDevice(ValueError):
         pass
 
-    def __init__(self):
+    def __init__(self, recognition_only=True):
         self._init_history_directory()
         self.node_name = rospy.get_name()
         self.pid = rospy.get_param(self.node_name + '/pid', -1)
         self.print_level = rospy.get_param('/print_level', 0)
+        self.recognition_only = recognition_only # Controls transcription of speech
         self.pub_transcript = rospy.Publisher(
             self.TOPIC_BASE + '/transcript', transcript, queue_size=10)
         self.pub_text = rospy.Publisher(
@@ -48,7 +52,7 @@ class SpeechRecognizer(object):
         self.pub_event = rospy.Publisher(
             self.TOPIC_BASE + '/log', event, queue_size=10)
         self.sample_rate = rospy.get_param(self.node_name + '/audio_rate', 16000)
-        self.async = rospy.get_param(self.node_name + '/async_mode', True)
+        self.async = rospy.get_param(self.node_name + '/async_mode', False)
         dynamic_thresholding = rospy.get_param(
             self.node_name + '/enable_dynamic_threshold', True)
         if not dynamic_thresholding:
@@ -138,7 +142,11 @@ class SpeechRecognizer(object):
                 if operation is not None:  # TODO: Improve
                     self.operation_queue.append([sn, operation, start_time, end_time])
             else:
-                transc, confidence = self.recog(sn)
+                # Send only that you received speech if you dont want transcriptions.
+                if self.recognition_only:
+                    transc, confidence = (self.DUMMY_TRANSC, self.DUMMY_CONF)
+                else:
+                    transc, confidence = self.recog(sn)
                 self.utterance_decoded(sn, transc, confidence, start_time, end_time)
             sn += 1
         self.terminate()
@@ -256,7 +264,8 @@ class SpeechRecognizer(object):
                 operation = self.speech_client.speech_api.async_recognize(
                     sample=audio_sample, speech_context=context)
                 return operation
-            except (ValueError, RetryError):
+            except (ValueError, RetryError) as e:
+                rospy.logerr(e)
                 rospy.logerr("Audio Segment too long. Unable to recognize")
         else:
             alternatives = self.speech_client.speech_api.sync_recognize(
