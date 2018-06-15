@@ -40,7 +40,7 @@ Authentication of the `Google Cloud Speech API` is done by setting an environmen
 
 #### Public ROS params
 * `/ros_speech2text/speech_history`: location of the speech history for the session
-* `GOOGLE_APPLICATION_CREDENTIALS`: sets env var for google apis to work
+* `GOOGLE_APPLICATION_CREDENTIALS`: sets environment variable for Google Cloud APIs to work
 
 #### Private ROS params
 * `audio_device_idx`: device ID of audio source.
