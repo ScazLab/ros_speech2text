@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import numpy as np
 
 from collections import deque
@@ -120,7 +122,7 @@ class SpeechDetector:
 
     def __init__(self, rate, threshold, dynamic_threshold=False,
                  dynamic_threshold_frame=3, chunk_size=None,
-                 min_average_volume=0., n_silent=10):
+                 min_average_volume=0., n_silent=5):
         self.rate = rate
         if dynamic_threshold:
             self.silence_detect = DynamicSilenceDetector(
@@ -183,8 +185,8 @@ class SpeechDetector:
             min_avg_volume: helps thresholding in quiet environments
             pub_screen: publishes status messages to baxter screen
         """
-        stream.start_stream()  # TODO: Why not record during recognition
         self.reset()
+        stream.start_stream()  # TODO: Why not record during recognition
         previously = False
 
         while not self.found:
