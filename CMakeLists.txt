@@ -15,14 +15,11 @@ catkin_python_setup()
 add_message_files(FILES transcript.msg event.msg)
 
 generate_messages(DEPENDENCIES std_msgs)
+
+## ROS package
+
 catkin_package(
- CATKIN_DEPENDS rospy std_msgs message_runtime
-)
-
-## Build
-
-include_directories(
-  ${catkin_INCLUDE_DIRS}
+  CATKIN_DEPENDS rospy std_msgs message_runtime
 )
 
 ## Test
@@ -30,13 +27,13 @@ include_directories(
 if(CATKIN_ENABLE_TESTING)
   # Need to encrypt google cloud credentials before automating these tests
   # find_package(rostest REQUIRED)
-  # add_rostest(test/test_s2t.test)
+  # add_rostest(test/test_ros_speech2text.test)
   catkin_add_nosetests(test/test_speech_detection.py)
 endif()
 
 ## Install
 
 install(PROGRAMS
-  scripts/ros_s2t.py
+  scripts/ros_speech2text.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
