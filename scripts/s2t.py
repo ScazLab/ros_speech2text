@@ -4,7 +4,7 @@ import sys
 
 import rospy
 
-from ros_speech2text.test_speech import SpeechRecognizer
+from ros_speech2text.speech_recognition import SpeechRecognizer
 
 
 if __name__ == '__main__':
