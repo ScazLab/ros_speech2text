@@ -2,6 +2,8 @@
 
 A speech2text engine for ROS __(WARNING! This version on this branch uses Ubuntu 16.04 with Ros Kinetic and NOT Indigo)__, using the Google Cloud Speech API.
 
+__NOTE:__ When using the "SAMSON STAGE PXD1" microphones, open up the back and use the screwdriver to set the gain to in between the third and fourth tick from the bottom. This sets the sensitivity to a place that easily detects the wearer's voice but not other sounds/voices.
+
 ![Setup](https://cloud.githubusercontent.com/assets/7922534/23566041/32243298-001e-11e7-860e-6a187fd416e6.png)
 
 ## Prerequisites
