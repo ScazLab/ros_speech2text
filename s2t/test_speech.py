@@ -58,9 +58,9 @@ class SpeechRecognizer(object):
         self.sample_rate = rospy.get_param(self.node_name + '/audio_rate', 16000)
         self.async = rospy.get_param(self.node_name + '/async_mode', False)
         dynamic_thresholding = rospy.get_param(
-            self.node_name + '/enable_dynamic_threshold', True)
+            self.node_name + '/enable_dynamic_threshold', False)
         if not dynamic_thresholding:
-            threshold = rospy.get_param(self.node_name + '/audio_threshold', 700)
+            threshold = rospy.get_param(self.node_name + '/audio_threshold', 500)
         else:
             threshold = rospy.get_param(
                 self.node_name + '/audio_dynamic_percentage', 50)
@@ -139,13 +139,18 @@ class SpeechRecognizer(object):
         	self.record_to_file(aud_data, sn)
         	print(sn)
         	if self.async:
-        		print("oops shouldn't be async")
+        		# print("oops shouldn't be async")
+        		try:
+        			transc, confidence = self.recog(sn)
+        			self.utterance_decoded(sn, transc, confidence, start_time, end_time)
+        		except Exception as e:
+        			rospy.logerr("Error in asynchronous recognition: {}".format(e))
         	else:
         		try:
         			transc, confidence = self.recog(sn)
         			self.utterance_decoded(sn, transc, confidence, start_time, end_time)
         		except Exception as e:
-        			rospy.logerr("NoneType object error again: {}".format(e))
+        			rospy.logerr("Error in synchronous recognition: {}".format(e))
         	sn += 1
         self.terminate()
 
@@ -255,8 +260,14 @@ class SpeechRecognizer(object):
             language_code='en-US',
             enable_automatic_punctuation=True)
 
+        # TODO: figure out what the difference is between async and sync recog and how to use them
         if self.async:
-        	print("really shouldn't even get here")
+        	operation = self.speech_client.long_running_recognize(config, audio)
+        	op_result = operation.result()
+        	for result in op_result.results:
+        		for alternative in result.alternatives:
+        			print(alternative)
+        			return alternative.transcript, alternative.confidence
         else:
         	try:
         		# print("hi")
@@ -267,6 +278,7 @@ class SpeechRecognizer(object):
         				# print(u'Transcript: {}'.format(result.alternatives[0].transcript))
         				# print(u'Confidence: {}'.format(result.alternatives[0].confidence))
         				if result.alternatives[0].transcript is not None:
+        					print(result.alternatives[0])
         					return result.alternatives[0].transcript, result.alternatives[0].confidence
         				else:
         					print("Try speaking again")
