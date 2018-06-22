@@ -6,6 +6,8 @@ For setting up ROS and all that fun stuff look [here](https://alecive.github.io/
 Just make sure to replace any instance of the word "indigo" with "kinetic" because kinetic is the version of ROS for Ubuntu 16.04
 You should also cross reference [this](http://wiki.ros.org/kinetic/Installation/Ubuntu) as you go just to make sure anything kinetic specific is executed properly.
 
+Just make sure that before trying to do `pip install pyaudio` you run this line first `sudo apt-get install libasound-dev portaudio19-dev libportaudio2 libportaudiocpp0`
+
 __NOTE:__ "SAMSON STAGE PXD1" microphones were used in our project, and if you want to use them again, open up the back and use the screwdriver to set the gain to in between the third and fourth tick from the bottom. This sets the sensitivity to a place that easily detects the wearer's voice but not other sounds/voices.
 
 For using the updated Google-cloud speech-to-text API, take a look at these pages (navigating Google's documentation can be kind of annoying sometimes):
