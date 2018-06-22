@@ -1,5 +1,7 @@
 # Ros Speech2Text with Ubuntu 16.04 and updated Google Speech Client [![Build Status](https://travis-ci.org/ScazLab/ros_speech2text.svg?branch=master)](https://travis-ci.org/ScazLab/ros_speech2text) [![Issues](https://img.shields.io/github/issues/ScazLab/ros_speech2text.svg?label=Issues)](https://github.com/ScazLab/ros_speech2text/issues) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/be514e5db92f4f96876c5b3afbffcd1f)](https://www.codacy.com/app/Baxter-collaboration/ros_speech2text?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ScazLab/ros_speech2text&amp;utm_campaign=Badge_Grade)
 
+This was used with the "Team Meeting Project" using the Jibo robots. All information is current as of 2018-6-22.
+
 A speech2text engine for ROS __(WARNING! This version on this branch uses Ubuntu 16.04 with Ros Kinetic and NOT Indigo)__, using the updated Google Cloud Speech API.
 
 For setting up ROS and all that fun stuff look [here](https://alecive.github.io/ros_installation.html).
