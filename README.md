@@ -19,12 +19,12 @@ For using the updated Google-cloud speech-to-text API, take a look at these page
 
 [stable version of speech client](https://google-cloud-python.readthedocs.io/en/latest/speech/gapic/v1/api.html)
 
+[documentation on methods](https://cloud.google.com/speech-to-text/docs/reference/rpc/google.cloud.speech.v1)
+
 [beta version of client with added functionality like auto punctuation](https://google-cloud-python.readthedocs.io/en/latest/speech/gapic/v1p1beta1/api.html)
 
 [auto punctuation documentation](https://cloud.google.com/speech-to-text/docs/automatic-punctuation)
 (I don't really notice a difference in terms of recognition speed, so it could be cool to keep testing this out)
-
-[documentation on methods](https://cloud.google.com/speech-to-text/docs/reference/rpc/google.cloud.speech.v1)
 
 For information on how to analyze the transcript for things like getting the sentiment of the sentence or grabbing the nouns and verbs of the sentence, look here:
 
