@@ -19,6 +19,7 @@ For using the updated Google-cloud speech-to-text API, take a look at these page
 [documentation on methods](https://cloud.google.com/speech-to-text/docs/reference/rpc/google.cloud.speech.v1)
 
 For information on how to analyze the transcript for things like getting the sentiment of the sentence or grabbing the nouns and verbs of the sentence, look here:
+
 [first place to look](https://cloud.google.com/natural-language/docs/basics)
 
 [second place to look](https://google-cloud-python.readthedocs.io/en/latest/language/usage.html)
