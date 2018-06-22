@@ -2,7 +2,7 @@
 
 This was used with the "Team Meeting Project" using the Jibo robots. All information is current as of 2018-6-22.
 
-A speech2text engine for ROS __(WARNING! This version on this branch uses Ubuntu 16.04 with Ros Kinetic and NOT Indigo)__, using the updated Google Cloud Speech API.
+A speech2text engine for ROS __(WARNING! This version on this branch uses Ubuntu 16.04 with ROS Kinetic and NOT Indigo)__, using the updated Google Cloud Speech API.
 
 For setting up ROS and all that fun stuff look [here](https://alecive.github.io/ros_installation.html).
 Just make sure to replace any instance of the word "indigo" with "kinetic" because kinetic is the version of ROS for Ubuntu 16.04
