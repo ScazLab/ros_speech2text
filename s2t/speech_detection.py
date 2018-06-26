@@ -134,6 +134,7 @@ class SpeechDetector:
         self.chunk_size = chunk_size
         self.dyn_thr_frame = dynamic_threshold_frame
         self.max_n_silent = n_silent
+        self.not_silent = 0
         self.reset()
 
     def reset(self):
@@ -143,6 +144,7 @@ class SpeechDetector:
         self.chunks = []
         self.in_utterance = False
         self.start_time = None
+        self.not_silent = 0
 
     def treat_chunk(self, chunk):
         silent = self.silence_detect.is_silent(chunk)
@@ -172,10 +174,11 @@ class SpeechDetector:
                 self.n_silent += 1
             else:
                 self.n_silent = 0
+                self.not_silent += 1
 
     @property
     def found(self):
-        return self.n_silent > self.max_n_silent
+        return (self.n_silent > self.max_n_silent) or (self.not_silent > 22)
 
     def get_next_utter(self, stream, start_callback, end_callback):
         """
@@ -188,6 +191,8 @@ class SpeechDetector:
         self.reset()
         stream.start_stream()  # TODO: Why not record during recognition
         previously = False
+
+        # include here check if stream has more than 2 seconds of nontrivial sound and send pid
 
         while not self.found:
             # main loop for audio capturing
@@ -208,10 +213,15 @@ class SpeechDetector:
 
         end_callback()
 
+        sig_non_silence = False
+
+        if self.not_silent > 22:
+            sig_non_silence = True
+
         r = normalize(np.hstack(self.chunks))
         if self.silence_detect.is_static:
             r = self.silence_detect.trim(r)
         r = add_silence(r, self.rate, 1)
         assert(isinstance(self.start_time, rospy.rostime.Time))
         assert(isinstance(end_time, rospy.rostime.Time))
-        return r, self.start_time, end_time
+        return r, self.start_time, end_time, sig_non_silence

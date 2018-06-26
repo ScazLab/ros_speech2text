@@ -21,7 +21,7 @@ from google.gax.errors import RetryError
 
 import rospy
 from std_msgs.msg import String, Header
-from ros_speech2text.msg import transcript, event
+from ros_speech2text.msg import transcript, event, start_utterance
 
 from .speech_detection import SpeechDetector
 
@@ -51,6 +51,8 @@ class SpeechRecognizer(object):
         self.print_level = rospy.get_param('/print_level', 0)
         self.pub_transcript = rospy.Publisher(
             self.TOPIC_BASE + '/transcript', transcript, queue_size=10)
+        self.pub_start = rospy.Publisher(
+            self.TOPIC_BASE + '/start_utterance', start_utterance, queue_size=10)
         self.pub_text = rospy.Publisher(
             self.TOPIC_BASE + '/text', String, queue_size=10)
         self.pub_event = rospy.Publisher(
@@ -75,6 +77,7 @@ class SpeechRecognizer(object):
             n_silent=rospy.get_param(
                 self.node_name + '/n_silent_chunks', 10),
         )
+        self.sig_non_silence = False
         if self.print_level > 0:
             rospy.loginfo('Sample Rate: {}'.format(self.sample_rate))
 
@@ -131,19 +134,24 @@ class SpeechRecognizer(object):
     def run(self):
     	sn = 0
     	while not rospy.is_shutdown():
-    		aud_data, start_time, end_time = self.speech_detector.get_next_utter(
-    			self.stream, *self.get_utterance_start_end_callbacks(sn))
-    		if aud_data is None:
-    			rospy.loginfo("No more data, exiting...")
-    			break
-        	self.record_to_file(aud_data, sn)
-        	print(sn)
-        	try:
-        		transc, confidence = self.recog(sn)
-        		self.utterance_decoded(sn, transc, confidence, start_time, end_time)
-        	except Exception as e:
-        		rospy.logerr("Error in recognition: {}".format(e))
-        	sn += 1
+            aud_data, start_time, end_time, sig_non_silence = self.speech_detector.get_next_utter(
+                self.stream, *self.get_utterance_start_end_callbacks(sn))
+            if aud_data is None:
+                rospy.loginfo("No more data, exiting...")
+                break
+            if sig_non_silence:
+                try:
+                    self.get_utterance_started()
+                except Exception as e:
+                    ropsy.logger("Error in starting utterance: {}".format(e))
+            self.record_to_file(aud_data, sn)
+            print(sn)
+            try:
+                transc, confidence = self.recog(sn)
+                self.utterance_decoded(sn, transc, confidence, start_time, end_time)
+            except Exception as e:
+                rospy.logerr("Error in recognition: {}".format(e))
+            sn += 1
         self.terminate()
 
     def terminate(self):
@@ -193,6 +201,10 @@ class SpeechRecognizer(object):
             start_time, end_time, transcript_msg.speech_duration,
             transcription, confidence])
 
+    def get_utterance_started(self):
+        utterance_start_pid = self.get_start_utterance()
+        self.pub_start.publish(utterance_start_pid)
+
     def utterance_failed(self, utterance_id, start_time, end_time):
         if self.print_level > 1:
             rospy.loginfo("No good results returned!")
@@ -210,6 +222,11 @@ class SpeechRecognizer(object):
         msg.received_time = rospy.get_rostime()
         msg.transcript = transcription
         msg.confidence = confidence
+        msg.pid = self.pid
+        return msg
+
+    def get_start_utterance(self):
+        msg = start_utterance()
         msg.pid = self.pid
         return msg
 
@@ -250,6 +267,7 @@ class SpeechRecognizer(object):
             encoding=enums.RecognitionConfig.AudioEncoding.LINEAR16,
             sample_rate_hertz=self.sample_rate,
             language_code='en-US',
+            # language_code='ko-KR',
             enable_automatic_punctuation=True)
 
         if self.async:
