@@ -10,7 +10,7 @@ You should also cross reference [this](http://wiki.ros.org/kinetic/Installation/
 
 Just make sure that before trying to do `pip install pyaudio` you run this line first `sudo apt-get install libasound-dev portaudio19-dev libportaudio2 libportaudiocpp0`
 
-__NOTE:__ "SAMSON STAGE PXD1" microphones were used in our project, and if you want to use them again, open up the back and use the screwdriver to set the gain to in between the fourth and fifth tick from the bottom. This sets the sensitivity to a place that easily detects the wearer's voice but not other sounds/voices. But make sure to test this yourself because depending on the surroundings, you may need higher or lower sensitivity.
+__NOTE:__ "SAMSON STAGE PXD1" microphones were used in our project, and if you want to use them again, open up the back and use the screwdriver to set the gain to in between the fourth and fifth tick from the bottom. This sets the sensitivity to a place that easily detects the wearer's voice but not other sounds/voices. But test this yourself because depending on the surroundings, you may need higher or lower sensitivity. Also, make sure to have the mics directly facing your mouth and not to the side of your mouth, or you may get unpleasant results.
 
 For using the updated Google-cloud speech-to-text API, take a look at these pages (navigating Google's documentation can be kind of annoying sometimes):
 
