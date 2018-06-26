@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "lunar-geography-165320",
+  "private_key_id": "473b3b5e7f4af9323ca72aa9705797d932530d45",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDQ4O0NWd+FhSI2\nPc/HMNn6xTv8n9cG9kDt1JWC8fpxMe8nt7HLlGtdQe32QT0QOd51kabd6w8xe4ek\nB6h+uDj1bqDDIB5V8f1rkLSJYm0MdMHQgzRVAkcr37OmSSCLyEjC5li7auJdJIYX\nsP7YDeTs2rNgTJE1bgzPnpSmUqyphx7HN8T/jfIWzaTnJ6hYJ2ann+H6yv4M+keg\n+zqOEyMNgge+m0J1SM6IsqSrxIwAnfI7cWcwulxuvaDwfoIjd7EuvOXJmtdC5faf\n7wqWCo82YA/Vq8xjA3W0cKS/goEPed+znORili8BzZT3wz/MrBlNENxhX+0AJu64\n3/bLE60BAgMBAAECggEARwrZVVsl7PG1CyHG04bH/MSsfGWY6uNCfiF5oInQlkNX\nhfiyXf1i7tsHpmPV8vjbsr0RNhVGm5vaLG32XvMlXER+JR99cdnWSYlz/e4eDMiB\nSvv1Bpy5vDBfl8Tzbtd19+QEdeoKh4dunAw1ASLoo65WqAAiuzts3AiholgoJZgT\nwcnpBBoNXslmYmkvrzbZIMXb7LS4GC+gY3882FE2WRUGLWMtreqrlxjbqSwOs1yb\nrUYgVQWMp3xEJxDYyBsSYr8joq3wgfGjwAdvvS/FmRgmzcYjinRh8UrnfRh3JYw1\nGy7HnrvEAm570XNk24Mu0PRxvOzYRk3R22gLtprHYQKBgQD2OMx+JJ4npJiVfMki\ntcSgaKJRrIjIeGSOBj74Hg8vvtCWj6hKyEJg2rTVe5SvQu/VBhZss4O8VPGbzE6O\nJ8iL1ui/p4eMq39einyNl9BVpyBp+G2DUu6JSWcCKzJGzl9IVdEuf5cRE5vO1Zl7\nEVyxV9XbPoFPQR3Dv4y4EuYzbQKBgQDZLHqiacwlw9VmYcKre/N1SAeAbU59MLb6\nmLIC0OEHSbFhuEs0q+VD+AqYSitQ0JHB27qbW36vkhR4sBXz7R92lwBieiuC0rr9\nOWeOplmdoTDnAgHh4AGrjgLZl6UBv4PPHxbQH7xzGckknAz7zZ3j/nkPrvTiHVOK\n7aJ0mXYPZQKBgG7+JbjLevv1586jZOwfslZ5NIrK0xJDq1iWmjYxHrlwNAlbEws7\nASk2DgSaY+kprIGD8AHqXn08cXnA/Lx6VJ4tL9iNhb405QLSPNl7US/7WdJLadqk\nPOFoVGYW4OAoUa2C+fwTCh9pjngLs9dVeUp8hOwDXjlC6k7+f0nPQzR1AoGBAK62\nFLZiLITZJe1mikiQwAxC9R4BUZpvPVUe0F5pkg7d3yDBNWdbPmbOvh9D09MA57Gw\nRlBDbAhsmaF57z88LQqncfzHUge95gZfTws4knG4QnIlcEQ5hL5x0aMhVvKwEqbm\n2OB4F4/1V5bnH57XDMVlbBkM5B6f/xyODhqFdq/tAoGAc09f1jd8Fgj4YS5hBqOR\nRWCrB5glr6zcSXJSYLN/7eb5DATQChgFjObeyzj00YNAr9T5tEEBvb5S2mYpzUbw\nJeLo416TyZa1l9tCrdP26gLuJJLxq2KakTCbZBo2QTv8BRY9cAr3mG175ELjbYFv\nVkWVbcjcl3KtvdiCGrPOc4g=\n-----END PRIVATE KEY-----\n",
+  "client_email": "scazlab-speech2text@lunar-geography-165320.iam.gserviceaccount.com",
+  "client_id": "100543655818043190964",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://accounts.google.com/o/oauth2/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/scazlab-speech2text%40lunar-geography-165320.iam.gserviceaccount.com"
+}
