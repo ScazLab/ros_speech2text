@@ -1,0 +1,185 @@
+<launch>
+    <!-- sets env var for google apis to work /-->
+    <env      name ="GOOGLE_APPLICATION_CREDENTIALS"   value="$(find ros_speech2text)/ros-speech2text-google-stt-cred" />
+
+    <!-- starts node for synchronous s2t /-->
+    <node pkg="ros_speech2text" name="ros_speech2text1" type="s2t.py" output="screen">
+
+        <!-- location of the speech history for the session /-->
+        <!-- <param    name ="speech_history"  value="~/.ros/ros_speech2text/speech_history" /> -->
+
+        <!-- participant ID /-->
+        <param    name ="pid" value="1" />
+
+        <!-- device ID of audio source. If unknown, launch once and rosparam get /ros_speech2text/available_audio_device /-->
+        <!-- <param    name ="audio_device_idx" value="7" /> -->
+
+        <!-- device name of audio source. Only used if audio_device_idx is not set. Uses the first device that contains the given name (case insensitive). /-->
+        <param    name ="audio_device_name" value="hw:1,0"/> 
+
+        <!-- rate for your audio capturing device /-->
+        <param    name ="audio_rate" value="44100" />
+
+        <!-- param for static thresholding /-->
+        <param    name ="audio_threshold" value="575"   />
+
+        <!-- param for using async API call /-->
+        <param    name ="async_mode" value="False"  />
+
+        <!-- param for dynamic thresholding /-->
+        <param    name ="enable_dynamic_threshold" value="False"  />
+
+        <!-- activate audio recording when volume is this percentage higher than average /-->
+        <!-- <param    name ="audio_dynamic_percentage" value="50"  /> -->
+
+        <!-- for x consecutive frames all louder than the percentage we specified, activate recording /-->
+        <!-- <param    name ="audio_dynamic_frame" value="3"  /> -->
+
+        <!-- min value of average volume to prevent system from being too sensitive in case of constantly quiet environments /-->
+        <!-- <param    name ="audio_min_avg" value="100"  /> -->
+
+        <!-- for n consecutive silent frames the recording ends /-->
+        <!-- <param    name ="n_silent_chunks" value="10"  /> -->
+
+        <!-- param for cleaning up audio and transcript data after node ends /-->
+        <!-- <param    name ="cleanup" value="True"  /> -->
+
+        <!-- list of context clues for speech recognition /-->
+        <!-- <rosparam param="speech_context">[]</rosparam> -->
+    </node>
+
+    <node pkg="ros_speech2text" name="ros_speech2text2" type="s2t.py" output="screen">
+
+        <!-- location of the speech history for the session /-->
+        <!-- <param    name ="speech_history"  value="~/.ros/ros_speech2text/speech_history" /> -->
+
+        <!-- participant ID /-->
+        <param    name ="pid" value="2" />
+
+        <!-- device ID of audio source. If unknown, launch once and rosparam get /ros_speech2text/available_audio_device /-->
+        <!-- <param    name ="audio_device_idx" value="8" /> -->
+
+        <!-- device name of audio source. Only used if audio_device_idx is not set. Uses the first device that contains the given name (case insensitive). /-->
+        <param    name ="audio_device_name" value="hw:2,0"/> 
+
+        <!-- rate for your audio capturing device /-->
+        <param    name ="audio_rate" value="44100" />
+
+        <!-- param for static thresholding /-->
+        <param    name ="audio_threshold" value="575"   />
+
+        <!-- param for using async API call /-->
+        <param    name ="async_mode" value="False"  />
+
+        <!-- param for dynamic thresholding /-->
+        <param    name ="enable_dynamic_threshold" value="False"  />
+
+        <!-- activate audio recording when volume is this percentage higher than average /-->
+        <!-- <param    name ="audio_dynamic_percentage" value="50"  /> -->
+
+        <!-- for x consecutive frames all louder than the percentage we specified, activate recording /-->
+        <!-- <param    name ="audio_dynamic_frame" value="3"  /> -->
+
+        <!-- min value of average volume to prevent system from being too sensitive in case of constantly quiet environments /-->
+        <!-- <param    name ="audio_min_avg" value="100"  /> -->
+
+        <!-- for n consecutive silent frames the recording ends /-->
+        <!-- <param    name ="n_silent_chunks" value="10"  /> -->
+
+        <!-- param for cleaning up audio and transcript data after node ends /-->
+        <!-- <param    name ="cleanup" value="True"  /> -->
+
+        <!-- list of context clues for speech recognition /-->
+        <!-- <rosparam param="speech_context">[]</rosparam> -->
+    </node>
+
+    <node pkg="ros_speech2text" name="ros_speech2text3" type="s2t.py" output="screen">
+
+        <!-- location of the speech history for the session /-->
+        <!-- <param    name ="speech_history"  value="~/.ros/ros_speech2text/speech_history" /> -->
+
+        <!-- participant ID /-->
+        <param    name ="pid" value="3" />
+
+        <!-- device ID of audio source. If unknown, launch once and rosparam get /ros_speech2text/available_audio_device /-->
+        <!-- <param    name ="audio_device_idx" value="9" /> -->
+
+        <!-- device name of audio source. Only used if audio_device_idx is not set. Uses the first device that contains the given name (case insensitive). /-->
+        <param    name ="audio_device_name" value="hw:3,0"/> 
+
+        <!-- rate for your audio capturing device /-->
+        <param    name ="audio_rate" value="44100" />
+
+        <!-- param for static thresholding /-->
+        <param    name ="audio_threshold" value="575"   />
+
+        <!-- param for using async API call /-->
+        <param    name ="async_mode" value="False"  />
+
+        <!-- param for dynamic thresholding /-->
+        <param    name ="enable_dynamic_threshold" value="False"  />
+
+        <!-- activate audio recording when volume is this percentage higher than average /-->
+        <!-- <param    name ="audio_dynamic_percentage" value="50"  /> -->
+
+        <!-- for x consecutive frames all louder than the percentage we specified, activate recording /-->
+        <!-- <param    name ="audio_dynamic_frame" value="3"  /> -->
+
+        <!-- min value of average volume to prevent system from being too sensitive in case of constantly quiet environments /-->
+        <!-- <param    name ="audio_min_avg" value="100"  /> -->
+
+        <!-- for n consecutive silent frames the recording ends /-->
+        <!-- <param    name ="n_silent_chunks" value="10"  /> -->
+
+        <!-- param for cleaning up audio and transcript data after node ends /-->
+        <!-- <param    name ="cleanup" value="True"  /> -->
+
+        <!-- list of context clues for speech recognition /-->
+        <!-- <rosparam param="speech_context">[]</rosparam> -->
+    </node>
+
+    <node pkg="ros_speech2text" name="ros_speech2text4" type="s2t.py" output="screen">
+
+        <!-- location of the speech history for the session /-->
+        <!-- <param    name ="speech_history"  value="~/.ros/ros_speech2text/speech_history" /> -->
+
+        <!-- participant ID /-->
+        <param    name ="pid" value="4" />
+
+        <!-- device ID of audio source. If unknown, launch once and rosparam get /ros_speech2text/available_audio_device /-->
+        <!-- <param    name ="audio_device_idx" value="10" /> -->
+
+        <!-- device name of audio source. Only used if audio_device_idx is not set. Uses the first device that contains the given name (case insensitive). /-->
+        <param    name ="audio_device_name" value="hw:4,0"/> 
+
+        <!-- rate for your audio capturing device /-->
+        <param    name ="audio_rate" value="44100" />
+
+        <!-- param for static thresholding /-->
+        <param    name ="audio_threshold" value="575"   />
+
+        <!-- param for using async API call /-->
+        <param    name ="async_mode" value="False"  />
+
+        <!-- param for dynamic thresholding /-->
+        <param    name ="enable_dynamic_threshold" value="False"  />
+
+        <!-- activate audio recording when volume is this percentage higher than average /-->
+        <!-- <param    name ="audio_dynamic_percentage" value="50"  /> -->
+
+        <!-- for x consecutive frames all louder than the percentage we specified, activate recording /-->
+        <!-- <param    name ="audio_dynamic_frame" value="3"  /> -->
+
+        <!-- min value of average volume to prevent system from being too sensitive in case of constantly quiet environments /-->
+        <!-- <param    name ="audio_min_avg" value="100"  /> -->
+
+        <!-- for n consecutive silent frames the recording ends /-->
+        <!-- <param    name ="n_silent_chunks" value="10"  /> -->
+
+        <!-- param for cleaning up audio and transcript data after node ends /-->
+        <!-- <param    name ="cleanup" value="True"  /> -->
+
+        <!-- list of context clues for speech recognition /-->
+        <!-- <rosparam param="speech_context">[]</rosparam> -->
+    </node>
+</launch>
