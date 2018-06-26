@@ -133,24 +133,30 @@ class SpeechRecognizer(object):
 
     def run(self):
     	sn = 0
+        first = True # don't keep checking if you should send start_utterance, only when you need to
+        aud_data = None
     	while not rospy.is_shutdown():
             aud_data, start_time, end_time, sig_non_silence = self.speech_detector.get_next_utter(
-                self.stream, *self.get_utterance_start_end_callbacks(sn))
+                aud_data, self.stream, first, *self.get_utterance_start_end_callbacks(sn))
             if aud_data is None:
                 rospy.loginfo("No more data, exiting...")
                 break
-            if sig_non_silence:
+            if sig_non_silence & first:
+                first = False
                 try:
                     self.get_utterance_started()
                 except Exception as e:
                     ropsy.logger("Error in starting utterance: {}".format(e))
-            self.record_to_file(aud_data, sn)
-            print(sn)
-            try:
-                transc, confidence = self.recog(sn)
-                self.utterance_decoded(sn, transc, confidence, start_time, end_time)
-            except Exception as e:
-                rospy.logerr("Error in recognition: {}".format(e))
+            else:
+                first = True
+                self.record_to_file(aud_data, sn)
+                aud_data = None
+                print(sn)
+                try:
+                    transc, confidence = self.recog(sn)
+                    self.utterance_decoded(sn, transc, confidence, start_time, end_time)
+                except Exception as e:
+                    rospy.logerr("Error in recognition: {}".format(e))
             sn += 1
         self.terminate()
 

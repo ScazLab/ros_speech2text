@@ -174,13 +174,18 @@ class SpeechDetector:
                 self.n_silent += 1
             else:
                 self.n_silent = 0
-                self.not_silent += 1
+                self.not_silent += 1 # for detecting whether significant spech is occurring or not
 
     @property
     def found(self):
-        return (self.n_silent > self.max_n_silent) or (self.not_silent > 22)
+        return (self.n_silent > self.max_n_silent)
 
-    def get_next_utter(self, stream, start_callback, end_callback):
+    @property
+    def sig_non_silent(self):
+        return (self.not_silent > 17)
+    
+
+    def get_next_utter(self, aud_data, stream, first, start_callback, end_callback):
         """
         Main function for capturing audio.
         Parameters:
@@ -193,9 +198,14 @@ class SpeechDetector:
         previously = False
 
         # include here check if stream has more than 2 seconds of nontrivial sound and send pid
-
         while not self.found:
             # main loop for audio capturing
+
+            # send the start_utterance message first, but don't keep sending it
+            if self.sig_non_silent & first:
+                aud_data = self.chunks
+                return aud_data, 0, 0, True
+
             if self.in_utterance and not previously:
                 start_callback()
             previously = self.in_utterance
@@ -208,20 +218,27 @@ class SpeechDetector:
                 dtype=BUFFER_NP_TYPE)
             self.treat_chunk(snd_data)
 
+
         stream.stop_stream()
         end_time = rospy.get_rostime()
 
         end_callback()
 
-        sig_non_silence = False
-
-        if self.not_silent > 22:
-            sig_non_silence = True
-
-        r = normalize(np.hstack(self.chunks))
-        if self.silence_detect.is_static:
-            r = self.silence_detect.trim(r)
-        r = add_silence(r, self.rate, 1)
-        assert(isinstance(self.start_time, rospy.rostime.Time))
-        assert(isinstance(end_time, rospy.rostime.Time))
-        return r, self.start_time, end_time, sig_non_silence
+        if (aud_data is not None):
+            for ins in reversed(aud_data):
+                self.chunks.insert(0, ins)
+            r = normalize(np.hstack(self.chunks))
+            if self.silence_detect.is_static:
+                r = self.silence_detect.trim(r)
+            r = add_silence(r, self.rate, 1)
+            assert(isinstance(self.start_time, rospy.rostime.Time))
+            assert(isinstance(end_time, rospy.rostime.Time))
+            return r, self.start_time, end_time, False
+        else:
+            r = normalize(np.hstack(self.chunks))
+            if self.silence_detect.is_static:
+                r = self.silence_detect.trim(r)
+            r = add_silence(r, self.rate, 1)
+            assert(isinstance(self.start_time, rospy.rostime.Time))
+            assert(isinstance(end_time, rospy.rostime.Time))
+            return r, self.start_time, end_time, False
