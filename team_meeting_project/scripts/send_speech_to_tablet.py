@@ -12,10 +12,11 @@ import collections
 import socket
 import pdb
 import json
+import time
 from google.cloud import language
 from google.oauth2 import service_account
 from ros_speech2text.msg import transcript, start_utterance
-# from nltk.corpus import cmudict
+from nltk.corpus import cmudict
 
 
 class TabletSession:
@@ -35,8 +36,6 @@ class TabletSession:
 						+ "\"confidence\": " + "0" + "," \
 						+ "\"pid\": " + str(int(data.pid)) + ","\
 						+ "\"sentiment\": " + "0" + "," \
-						+ "\"nouns\": " + "\"" + "\"" + "," \
-						+ "\"verbs\": " + "\"" + "\"" + "," \
 						+ "\"recv-end\": " + "0" \
 						+ "}"
 		print "Sending start_utterance: %s" % start_indicator
@@ -44,6 +43,7 @@ class TabletSession:
 
 	def callback_speech_transcript(self, data):
 		global language_client
+		time_begin = time.time()
 
 		document = language.types.Document(
 			content = str(data.transcript),
@@ -55,23 +55,55 @@ class TabletSession:
 			# encoding_type = 'UTF32'
 		)
 
+		# decided not to use the nouns and verbs and syllables parsing for now because the processing
+		# added about 1-1.5 seconds more delay in between end of speech and sending to Jibo
+
 		# testing the Google natural language syntax analysis
 		# https://cloud.google.com/natural-language/docs/analyzing-syntax
-		client = language.LanguageServiceClient()
-		tokens = client.analyze_syntax(document).tokens
-		nouns = ""
-		verbs = ""
-		pos_tag = ('UNKNOWN', 'ADJ', 'ADP', 'ADV', 'CONJ', 'DET', 'NOUN', 'NUM',
-               'PRON', 'PRT', 'PUNCT', 'VERB', 'X', 'AFFIX')
-		for token in tokens:
-			# print(u'{}: {}'.format(pos_tag[token.part_of_speech.tag],
-   #      		token.text.content))
-   			if pos_tag[token.part_of_speech.tag] == 'NOUN':
-   				nouns += token.text.content + ", "
-   			if pos_tag[token.part_of_speech.tag] == 'VERB':
-   				verbs += token.text.content + ", "
-   		nouns = nouns[0:-2]
-   		verbs = verbs[0:-2]
+		# !!!client = language.LanguageServiceClient()
+		# !!!tokens = client.analyze_syntax(document).tokens
+		# nouns = ""
+		# verbs = ""
+		# !!!pos_tag = ('UNKNOWN', 'ADJ', 'ADP', 'ADV', 'CONJ', 'DET', 'NOUN', 'NUM',
+		# 	'PRON', 'PRT', 'PUNCT', 'VERB', 'X', 'AFFIX')
+		# for token in tokens:
+		# 	# print(u'{}: {}'.format(pos_tag[token.part_of_speech.tag],
+  #  #      		token.text.content))
+  #  			if pos_tag[token.part_of_speech.tag] == 'NOUN':
+  #  				nouns += token.text.content + ", "
+  #  			if pos_tag[token.part_of_speech.tag] == 'VERB':
+  #  				verbs += token.text.content + ", "
+  #  		nouns = nouns[0:-2]
+  #  		verbs = verbs[0:-2]
+
+  		# nouns = []
+  		# verbs = []
+  		# for token in tokens:
+  		# 	if pos_tag[token.part_of_speech.tag] == 'NOUN':
+  		# 		nouns.extend([token.text.content])
+  		# 	if pos_tag[token.part_of_speech.tag] == 'VERB':
+  		# 		verbs.extend([token.text.content])
+  		# words = nouns + verbs
+
+
+	   	# d = cmudict.dict()
+	   	# def nsyl(word):
+	   	# 	return [len(list(y for y in x if y[-1].isdigit())) for x in d[word.lower()]]
+
+	   	# syllabs = ""
+	   	# for syl in words:
+	   	# 	try:
+	   	# 		if nsyl(syl)[0] >= 2:
+	   	# 			syllabs += syl + ", "
+	   	# 	except Exception as e:
+	   	# 		print("{}".format(e))
+	   	# try:
+	   	# 	syllabs = syllabs[0:-2]
+	   	# except Exception as e:
+	   	# 	print("{}".format(e))
+# + "\"nouns\": " + "\"" + ", ".join(str(n) for n in nouns) + "\"" + "," \
+# + "\"verbs\": " + "\"" + ", ".join(str(v) for v in verbs) + "\"" + "," \
+# + "\"syllables\": " + "\"" + str(syllabs) + "\"" + "," \
 
 		transcript_data = "{" \
 						+ "\"start_time\": " + str(data.start_time.to_sec()) + "," \
@@ -82,12 +114,10 @@ class TabletSession:
 						+ "\"confidence\": " + str(float(data.confidence)) + "," \
 						+ "\"pid\": " + str(int(data.pid)) + ","\
 						+ "\"sentiment\": " + str(response.document_sentiment.score) + "," \
-						+ "\"nouns\": " + "\"" + str(nouns) + "\"" + "," \
-						+ "\"verbs\": " + "\"" + str(verbs) + "\"" + "," \
 						+ "\"recv-end\": " + str((data.received_time.to_sec() - data.end_time.to_sec())) \
 						+ "}"
-		# print "Sending: %s" % json.dumps(json_transcript_data)
 		print "Sending: %s" % transcript_data
+		print "Time from receive to send: ", time.time()-time_begin
 		self.conn.send(transcript_data + "\r\n")
 
 	def run(self):
@@ -145,30 +175,40 @@ def callback_speech_transcript(data):
 	tokens = client.analyze_syntax(document).tokens
 	pos_tag = ('UNKNOWN', 'ADJ', 'ADP', 'ADV', 'CONJ', 'DET', 'NOUN', 'NUM',
 		'PRON', 'PRT', 'PUNCT', 'VERB', 'X', 'AFFIX')
-	nouns = ""
-	verbs = ""
-	for token in tokens:
-   			if pos_tag[token.part_of_speech.tag] == 'NOUN':
-   				nouns += token.text.content + ", "
-   			if pos_tag[token.part_of_speech.tag] == 'VERB':
-   				verbs += token.text.content + ", "
-   	nouns = nouns[0:-2]
-   	verbs = verbs[0:-2]
+	# nouns = ""
+	# verbs = ""
+	# for token in tokens:
+ #   			if pos_tag[token.part_of_speech.tag] == 'NOUN':
+ #   				nouns += token.text.content + ", "
+ #   			if pos_tag[token.part_of_speech.tag] == 'VERB':
+ #   				verbs += token.text.content + ", "
+ #   	nouns = nouns[0:-2]
+ #   	verbs = verbs[0:-2]
 
- 	# nouns = []
- 	# for token in tokens:
-  #  		if pos_tag[token.part_of_speech.tag] == 'NOUN':
-  #  			nouns.extend([token.text.content])
 
-  #  	d = cmudict.dict()
-  #  	def nsyl(word):
-  #  		return [len(list(y for y in x if y[-1].isdigit())) for x in d[word.lower()]]
+   	# experimenting with pulling the words with most syllables
+ 	nouns = []
+ 	verbs = []
+ 	for token in tokens:
+   		if pos_tag[token.part_of_speech.tag] == 'NOUN':
+   			nouns.extend([token.text.content])
+   		if pos_tag[token.part_of_speech.tag] == 'VERB':
+   			verbs.extend([token.text.content])
+   	words = nouns + verbs
 
-  #  	syllabs = ""
-  #  	for syl in nouns:
-  #  		if nsyl(syl) >= 2:
-  #  			syllabs += syl + ", "
-  #  	syllabs = syllabs[0:-2]
+
+   	d = cmudict.dict()
+   	def nsyl(word):
+   		return [len(list(y for y in x if y[-1].isdigit())) for x in d[word.lower()]]
+
+   	syllabs = ""
+   	for syl in words:
+   		if nsyl(syl)[0] >= 2:
+   			syllabs += syl + ", "
+   	try:
+   		syllabs = syllabs[0:-2]
+   	except Exception as e:
+   		print("{}".format(e))
 
 	json_transcript_data = {
 		"start_time": data.start_time.to_sec(),
@@ -179,8 +219,9 @@ def callback_speech_transcript(data):
 		"confidence": float(data.confidence),
 		"pid": int(data.pid),
 		"sentiment": response.document_sentiment.score,
-		"nouns": nouns,
-		"verbs": verbs,
+		"nouns": ", ".join(str(n) for n in nouns),
+		"verbs": ", ".join(str(v) for v in verbs),
+		"syllables": syllabs,
 		"recv-end": data.received_time.to_sec() - data.end_time.to_sec()
 	}
 
@@ -210,6 +251,7 @@ def callback_start_utterance(data):
 					+ "\"sentiment\": " + "0" + "," \
 					+ "\"nouns\": " + "\"" + "\"" + "," \
 					+ "\"verbs\": " + "\"" + "\"" + "," \
+					+ "\"syllables: " + "\"" + "\"" + "," \
 					+ "\"recv-end\": " + "0" \
 					+ "}"
 	print "Sending start_utterance: %s" % start_indicator
