@@ -5,6 +5,7 @@ import numpy as np
 from collections import deque
 
 import rospy
+import time
 
 
 NORMAL_MAXIMUM = 16384
@@ -164,6 +165,7 @@ class SpeechDetector:
                 rospy.logdebug('collecting audio segment')
                 self.start_time = rospy.get_rostime()
                 self.in_utterance = True
+                self.not_silent += 1
         if silent and not self.in_utterance:
             self.silence_detect.update_average(chunk)
             self.chunks = []
@@ -182,7 +184,7 @@ class SpeechDetector:
 
     @property
     def sig_non_silent(self):
-        return (self.not_silent > 17)
+        return (self.not_silent > 8)
     
 
     def get_next_utter(self, aud_data, stream, first, start_callback, end_callback):

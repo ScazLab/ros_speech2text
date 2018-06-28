@@ -4,6 +4,7 @@ import csv
 import shutil
 from struct import pack
 from threading import Thread
+import time
 
 import wave
 import pyaudio
@@ -12,7 +13,7 @@ import pyaudio
 from google.cloud import speech_v1p1beta1 as speech
 from google.cloud.speech_v1p1beta1 import enums
 from google.cloud.speech_v1p1beta1 import types
-# from google.cloud import speech_v1 as speech
+# from google.cloud import speech as speech
 # from google.cloud.speech import enums
 # from google.cloud.speech import types
 from google.gax.errors import RetryError
@@ -57,10 +58,10 @@ class SpeechRecognizer(object):
             self.TOPIC_BASE + '/text', String, queue_size=10)
         self.pub_event = rospy.Publisher(
             self.TOPIC_BASE + '/log', event, queue_size=10)
-        self.sample_rate = rospy.get_param(self.node_name + '/audio_rate', 16000)
-        self.async = rospy.get_param(self.node_name + '/async_mode', False)
+        self.sample_rate = rospy.get_param(self.node_name + '/audio_rate', 8000)
+        self.async = rospy.get_param(self.node_name + '/async_mode', True)
         dynamic_thresholding = rospy.get_param(
-            self.node_name + '/enable_dynamic_threshold', False)
+            self.node_name + '/enable_dynamic_threshold', True)
         if not dynamic_thresholding:
             threshold = rospy.get_param(self.node_name + '/audio_threshold', 500)
         else:
@@ -78,6 +79,7 @@ class SpeechRecognizer(object):
                 self.node_name + '/n_silent_chunks', 10),
         )
         self.sig_non_silence = False
+        self.streaming = False
         if self.print_level > 0:
             rospy.loginfo('Sample Rate: {}'.format(self.sample_rate))
 
@@ -132,10 +134,10 @@ class SpeechRecognizer(object):
         self.csv_writer.writerow(['start', 'end', 'duration', 'transcript', 'confidence'])
 
     def run(self):
-    	sn = 0
+        sn = 0
         first = True # don't keep checking if you should send start_utterance, only when you need to
         aud_data = None
-    	while not rospy.is_shutdown():
+        while not rospy.is_shutdown():
             aud_data, start_time, end_time, sig_non_silence = self.speech_detector.get_next_utter(
                 aud_data, self.stream, first, *self.get_utterance_start_end_callbacks(sn))
             if aud_data is None:
@@ -146,7 +148,17 @@ class SpeechRecognizer(object):
                 try:
                     self.get_utterance_started()
                 except Exception as e:
-                    ropsy.logger("Error in starting utterance: {}".format(e))
+                    rospy.logerr("Error in starting utterance: {}".format(e))
+            elif self.streaming:
+                first = True
+                self.record_to_file(aud_data, sn)
+                try:
+                    transc, confidence = self.recog(sn, aud_data)
+                    self.utterance_decoded(sn, transc, confidence, start_time, end_time)
+                except Exception as e:
+                    rospy.logerr("Error in starting streaming recognition {}".format(e))
+                aud_data = None
+                print(sn)
             else:
                 first = True
                 self.record_to_file(aud_data, sn)
@@ -262,7 +274,7 @@ class SpeechRecognizer(object):
         rospy.logdebug('File saved to {}'.format(path))
 
     def recog(self, utterance_id):
-    	context = rospy.get_param(self.node_name + '/speech_context', [])
+        context = rospy.get_param(self.node_name + '/speech_context', [])
         path = self.utterance_file(utterance_id)
 
         with io.open(path, 'rb') as audio_file:
@@ -270,29 +282,48 @@ class SpeechRecognizer(object):
 
         audio = types.RecognitionAudio(content=content)
         config = types.RecognitionConfig(
-            encoding=enums.RecognitionConfig.AudioEncoding.LINEAR16,
+            encoding='LINEAR16',
             sample_rate_hertz=self.sample_rate,
             language_code='en-US',
-            # language_code='ko-KR',
             enable_automatic_punctuation=True)
 
         if self.async:
             try:
-        	   operation = self.speech_client.long_running_recognize(config, audio)
-        	   op_result = operation.result()
-        	   for result in op_result.results:
-        		  for alternative in result.alternatives:
-        			 print(alternative)
-        			 return alternative.transcript, alternative.confidence
+               operation = self.speech_client.long_running_recognize(config, audio)
+               op_result = operation.result()
+               for result in op_result.results:
+                  for alternative in result.alternatives:
+                     print(alternative)
+                     return alternative.transcript, alternative.confidence
             except Exception as e:
                 rospy.logerr("Error in asynchronous recognition: {}".format(e))
+        # doesn't really work right now, requires the audio to be chopped up into smaller blocks
+        # so that the server can receive "livestream"/realtime sized blocks
+        elif self.streaming:
+            try:
+                stream = [content]
+                requests = (types.StreamingRecognizeRequest(audio_content=chunk)
+                    for chunk in stream)
+                streaming_config = types.StreamingRecognitionConfig(config=config)
+
+                responses = self.speech_client.streaming_recognize(streaming_config, requests)
+                for response in responses:
+                    for result in response.results:
+                        print('Finished: {}'.format(result.is_final))
+                        print('Stability: {}'.format(result.stability))
+                        for alternative in result.alternatives:
+                            if alternative.transcript is not None:
+                                print(alternative)
+                                return alternative.transcript, alternative.confidence
+            except Exception as e:
+                rospy.logerr("Error in streaming recognition: {}".format(e))
         else:
-        	try:
-        		response = self.speech_client.recognize(config, audio)
-        		if response.results is not None:
-        			for result in response.results:
-        				if result.alternatives[0].transcript is not None:
-        					print(result.alternatives[0])
-        					return result.alternatives[0].transcript, result.alternatives[0].confidence
-        	except Exception as e:
-        		rospy.logerr("Error in synchronous recognition: {}".format(e))
+            try:
+                response = self.speech_client.recognize(config, audio)
+                if response.results is not None:
+                    for result in response.results:
+                        if result.alternatives[0].transcript is not None:
+                            print(result.alternatives[0])
+                            return result.alternatives[0].transcript, result.alternatives[0].confidence
+            except Exception as e:
+                rospy.logerr("Error in synchronous recognition: {}".format(e))
