@@ -21,11 +21,11 @@ Once you have `roscore` up and running, open another terminal window or tab and 
 
 In another terminal window or tab run `roslaunch ros_speech2text ros_speech2text.launch` to run with only one mic or `roslaunch ros_speech2text ros_speech2text_[insert number 2-4]mics.launch` depending on how many mics you want to run with. For example if I want to run with 3 mics, I would run `roslaunch ros_speech2text ros_speech2text_3mics.launch`
 
-If you want to control whether or not to use the start_utterance messages, look in the `ros_speech2text` launch files and find the parameter `enable_start_utterance"`.
-
 __Warning:__
 In the case that the mics become, for whatever reason, out of order (i.e. mic 1 is no longer associated with pid 1), then unplug all of the mics, and run the different launch files in order of increasing number of mics while adding the appropriate mics one at a time.
 For example, with all of mics unplugged, insert the receiver for mic 1 and then run `roslaunch ros_speech2text ros_speech2text.launch` then add the second mic receiver and run the launch file for 2 mics and so on. You may need to exit out of all open terminals and restart terminals.
+
+If you want to control whether or not to use the start_utterance messages, look in the `ros_speech2text` launch files and find the parameter `enable_start_utterance"`.
 
 # Using the updated Google-cloud speech-to-text API
 Take a look at these pages (navigating Google's documentation can be kind of annoying sometimes):
