@@ -117,13 +117,13 @@ class SpeechDetector:
 
     :param threshold: float
         Static or dynamic threshold. Interpreted as a percentage when dynamic.
-    :param n_silent: int
+    :param num_silent: int
         Number of silent chunks to end detected utterance.
     """
 
     def __init__(self, rate, threshold, dynamic_threshold=False,
                  dynamic_threshold_frame=3, chunk_size=None,
-                 min_average_volume=0., n_silent=4):
+                 min_average_volume=0., num_silent=4):
         self.rate = rate
         if dynamic_threshold:
             self.silence_detect = DynamicSilenceDetector(
@@ -134,13 +134,16 @@ class SpeechDetector:
             chunk_size = self.rate // 10
         self.chunk_size = chunk_size
         self.dyn_thr_frame = dynamic_threshold_frame
-        self.max_n_silent = n_silent
+        self.max_num_silent = num_silent
+        # not_silent keeps track of which of the initial blocks contain sound
+        # this is used to determine whether or not speech utterance has been
+        # started and therefore whether the start_utterance message should be sent or not
         self.not_silent = 0
         self.reset()
 
     def reset(self):
         self.silence_detect.reset_average()
-        self.n_silent = 0
+        self.num_silent = 0
         self.n_peaks = 0
         self.chunks = []
         self.in_utterance = False
@@ -173,21 +176,26 @@ class SpeechDetector:
         if self.in_utterance:
             self.chunks.append(chunk)
             if silent:
-                self.n_silent += 1
+                self.num_silent += 1
             else:
-                self.n_silent = 0
+                self.num_silent = 0
                 self.not_silent += 1 # for detecting whether significant spech is occurring or not
 
+    # checks if the threshold for number of silent blocks been crossed
+    # if it has, then it will stop recording and save
     @property
     def found(self):
-        return (self.n_silent > self.max_n_silent)
+        return (self.num_silent > self.max_num_silent)
 
+    # checks if the threshold for number of significant blocks of sound been crossed
+    # if it has, AND it is the beginning of an utterance (start_speech is True) then
+    # stop recording but hold on to it, send the start_utterance message and resume
     @property
     def sig_non_silent(self):
         return (self.not_silent > 8)
     
 
-    def get_next_utter(self, aud_data, stream, first, start_callback, end_callback):
+    def get_next_utter(self, aud_data, stream, start_speech, start_callback, end_callback):
         """
         Main function for capturing audio.
         Parameters:
@@ -198,13 +206,12 @@ class SpeechDetector:
         self.reset()
         stream.start_stream()  # TODO: Why not record during recognition
         previously = False
-
-        # include here check if stream has more than 2 seconds of nontrivial sound and send pid
         while not self.found:
             # main loop for audio capturing
 
-            # send the start_utterance message first, but don't keep sending it
-            if self.sig_non_silent & first:
+            # send the start_utterance message if there is a significant number of blocks of sound
+            # but also only if it is the beginning of the utterance
+            if self.sig_non_silent & start_speech:
                 aud_data = self.chunks
                 return aud_data, 0, 0, True
 
@@ -226,6 +233,9 @@ class SpeechDetector:
 
         end_callback()
 
+        # since aud_data was passed in, if it is NOT None, then there was something recorded
+        # add the audio chunks from the previously recorded aud_data to the front of the current recording
+        # normalize and trim and return the new combined recording
         if (aud_data is not None):
             for ins in reversed(aud_data):
                 self.chunks.insert(0, ins)
@@ -233,14 +243,13 @@ class SpeechDetector:
             if self.silence_detect.is_static:
                 r = self.silence_detect.trim(r)
             r = add_silence(r, self.rate, 1)
-            assert(isinstance(self.start_time, rospy.rostime.Time))
-            assert(isinstance(end_time, rospy.rostime.Time))
             return r, self.start_time, end_time, False
+        # If it gets here, that means there wasn't a significant period of non silence, so the
+        # start utterance message wasn't sent, but there was still something recorded, so
+        # normalize, trim, and return this short recording
         else:
             r = normalize(np.hstack(self.chunks))
             if self.silence_detect.is_static:
                 r = self.silence_detect.trim(r)
             r = add_silence(r, self.rate, 1)
-            assert(isinstance(self.start_time, rospy.rostime.Time))
-            assert(isinstance(end_time, rospy.rostime.Time))
             return r, self.start_time, end_time, False

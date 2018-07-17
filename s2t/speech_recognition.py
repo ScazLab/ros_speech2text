@@ -9,7 +9,7 @@ import time
 import wave
 import pyaudio
 # in order to use the enable_automatic_punctuation, use the beta import
-# seems to be slightly worse at correctly recognizing speech than the none beta version
+# seems to be ever so slightly worse at correctly recognizing speech than the non beta version
 from google.cloud import speech_v1p1beta1 as speech
 from google.cloud.speech_v1p1beta1 import enums
 from google.cloud.speech_v1p1beta1 import types
@@ -40,6 +40,8 @@ def list_audio_devices(pyaudio_handler):
 
 class SpeechRecognizer(object):
 
+    # This is for the rospy Publisher and Subscriber
+    # The beginning of every message has the "prefix" '/speech_to_text'
     TOPIC_BASE = '/speech_to_text'
 
     class InvalidDevice(ValueError):
@@ -50,23 +52,29 @@ class SpeechRecognizer(object):
         self.node_name = rospy.get_name()
         self.pid = rospy.get_param(self.node_name + '/pid', -1)
         self.print_level = rospy.get_param('/print_level', 0)
+        # ROS message for the speech transcript
         self.pub_transcript = rospy.Publisher(
             self.TOPIC_BASE + '/transcript', transcript, queue_size=10)
+        # ROS message for speech utterance started
         self.pub_start = rospy.Publisher(
             self.TOPIC_BASE + '/start_utterance', start_utterance, queue_size=10)
         self.pub_text = rospy.Publisher(
             self.TOPIC_BASE + '/text', String, queue_size=10)
         self.pub_event = rospy.Publisher(
             self.TOPIC_BASE + '/log', event, queue_size=10)
-        self.sample_rate = rospy.get_param(self.node_name + '/audio_rate', 8000)
-        self.async = rospy.get_param(self.node_name + '/async_mode', True)
+        self.sample_rate = rospy.get_param(self.node_name + '/audio_rate', 16000)
+        self.async = rospy.get_param(self.node_name + '/async_mode', False)
         dynamic_thresholding = rospy.get_param(
-            self.node_name + '/enable_dynamic_threshold', True)
+            self.node_name + '/enable_dynamic_threshold', False)
         if not dynamic_thresholding:
-            threshold = rospy.get_param(self.node_name + '/audio_threshold', 500)
+            threshold = rospy.get_param(self.node_name + '/audio_threshold', 575)
         else:
             threshold = rospy.get_param(
                 self.node_name + '/audio_dynamic_percentage', 50)
+        # decide whether to use the start_utterance messages
+        self.enable_start_utterance = rospy.get_param(
+                self.node_name + '/enable_start_utterance', False)
+        # new instance of the SpeechDetector class found in speech_detection.py
         self.speech_detector = SpeechDetector(
             self.sample_rate,
             threshold,
@@ -75,11 +83,12 @@ class SpeechRecognizer(object):
                 self.node_name + '/audio_dynamic_frame', 3),
             min_average_volume=rospy.get_param(
                 self.node_name + '/audio_min_avg', 100),
-            n_silent=rospy.get_param(
+            num_silent=rospy.get_param(
                 self.node_name + '/n_silent_chunks', 10),
         )
+        # sig_non_silence is mainly to keep track of whether or not the
+        # start utterance message should be sent
         self.sig_non_silence = False
-        self.streaming = False
         if self.print_level > 0:
             rospy.loginfo('Sample Rate: {}'.format(self.sample_rate))
 
@@ -134,42 +143,57 @@ class SpeechRecognizer(object):
         self.csv_writer.writerow(['start', 'end', 'duration', 'transcript', 'confidence'])
 
     def run(self):
+        # sn is only really used for saving the audio files under different names
         sn = 0
-        first = True # don't keep checking if you should send start_utterance, only when you need to
-        aud_data = None
-        while not rospy.is_shutdown():
-            aud_data, start_time, end_time, sig_non_silence = self.speech_detector.get_next_utter(
-                aud_data, self.stream, first, *self.get_utterance_start_end_callbacks(sn))
-            if aud_data is None:
-                rospy.loginfo("No more data, exiting...")
-                break
-            if sig_non_silence & first:
-                first = False
-                try:
-                    self.get_utterance_started()
-                except Exception as e:
-                    rospy.logerr("Error in starting utterance: {}".format(e))
-            elif self.streaming:
-                first = True
-                self.record_to_file(aud_data, sn)
-                try:
-                    transc, confidence = self.recog(sn, aud_data)
-                    self.utterance_decoded(sn, transc, confidence, start_time, end_time)
-                except Exception as e:
-                    rospy.logerr("Error in starting streaming recognition {}".format(e))
+        # do we want to use the start_utterance messages
+        if (self.enable_start_utterance):
+            # don't keep checking if you should send start_utterance, only when you need to
+            start_speech = True
+            # declare aud_data up here so you can keep track of the recording from before the start utterance message is sent
+            aud_data = None
+            while not rospy.is_shutdown():
+                aud_data, start_time, end_time, sig_non_silence = self.speech_detector.get_next_utter(
+                    aud_data, self.stream, start_speech, *self.get_utterance_start_end_callbacks(sn))
+                if aud_data is None:
+                    rospy.loginfo("No more data, exiting...")
+                    break
+                # if it's the first significant period of sound, send the start utterance message
+                if sig_non_silence & start_speech:
+                    start_speech = False
+                    try:
+                        self.get_utterance_started()
+                    except Exception as e:
+                        rospy.logerr("Error in starting utterance: {}".format(e))
+                # not the first significant period of sound, send the whole message
+                else:
+                    start_speech = True
+                    self.record_to_file(aud_data, sn)
+                    aud_data = None
+                    print(sn)
+                    try:
+                        transc, confidence = self.recog(sn)
+                        self.utterance_decoded(sn, transc, confidence, start_time, end_time)
+                    except Exception as e:
+                        rospy.logerr("Error in recognition: {}".format(e))
+        else:
+            while not rospy.is_shutdown():
                 aud_data = None
-                print(sn)
-            else:
-                first = True
-                self.record_to_file(aud_data, sn)
-                aud_data = None
-                print(sn)
-                try:
-                    transc, confidence = self.recog(sn)
-                    self.utterance_decoded(sn, transc, confidence, start_time, end_time)
-                except Exception as e:
-                    rospy.logerr("Error in recognition: {}".format(e))
-            sn += 1
+                start_speech = False
+                aud_data, start_time, end_time, sig_non_silence = self.speech_detector.get_next_utter(
+                    aud_data, self.stream, start_speech, *self.get_utterance_start_end_callbacks(sn))
+                if aud_data is None:
+                    rospy.loginfo("No more data, exiting...")
+                    break
+                else:
+                    self.record_to_file(aud_data, sn)
+                    aud_data = None
+                    print(sn)
+                    try:
+                        transc, confidence = self.recog(sn)
+                        self.utterance_decoded(sn, transc, confidence, start_time, end_time)
+                    except Exception as e:
+                        rospy.logerr("Error in recognition: {}".format(e))
+        sn += 1
         self.terminate()
 
     def terminate(self):
@@ -219,17 +243,10 @@ class SpeechRecognizer(object):
             start_time, end_time, transcript_msg.speech_duration,
             transcription, confidence])
 
+    # Send message through ROS that utterance has started
     def get_utterance_started(self):
         utterance_start_pid = self.get_start_utterance()
         self.pub_start.publish(utterance_start_pid)
-
-    def utterance_failed(self, utterance_id, start_time, end_time):
-        if self.print_level > 1:
-            rospy.loginfo("No good results returned!")
-        transcript_msg = self.get_transcript_message("", 0., start_time, end_time)
-        event_msg = self.get_event_base_message(event.FAILED, utterance_id)
-        event_msg.transcript = transcript_msg
-        self.pub_event.publish(event_msg)
 
     def get_transcript_message(self, transcription, confidence, start_time,
                                end_time):
@@ -283,8 +300,10 @@ class SpeechRecognizer(object):
         audio = types.RecognitionAudio(content=content)
         config = types.RecognitionConfig(
             encoding='LINEAR16',
+            # make sure the sampling rate specified in the microphone node
             sample_rate_hertz=self.sample_rate,
             language_code='en-US',
+            # the automatic punctuation is only available for the beta version
             enable_automatic_punctuation=True)
 
         if self.async:
@@ -297,26 +316,6 @@ class SpeechRecognizer(object):
                      return alternative.transcript, alternative.confidence
             except Exception as e:
                 rospy.logerr("Error in asynchronous recognition: {}".format(e))
-        # doesn't really work right now, requires the audio to be chopped up into smaller blocks
-        # so that the server can receive "livestream"/realtime sized blocks
-        elif self.streaming:
-            try:
-                stream = [content]
-                requests = (types.StreamingRecognizeRequest(audio_content=chunk)
-                    for chunk in stream)
-                streaming_config = types.StreamingRecognitionConfig(config=config)
-
-                responses = self.speech_client.streaming_recognize(streaming_config, requests)
-                for response in responses:
-                    for result in response.results:
-                        print('Finished: {}'.format(result.is_final))
-                        print('Stability: {}'.format(result.stability))
-                        for alternative in result.alternatives:
-                            if alternative.transcript is not None:
-                                print(alternative)
-                                return alternative.transcript, alternative.confidence
-            except Exception as e:
-                rospy.logerr("Error in streaming recognition: {}".format(e))
         else:
             try:
                 response = self.speech_client.recognize(config, audio)
