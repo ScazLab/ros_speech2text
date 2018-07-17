@@ -14,18 +14,18 @@ __NOTE:__ "SAMSON STAGE PXD1" microphones were used in our project, and if you w
 
 When creating individual nodes for the SAMSON mics, use the option to set the mics based on their names and not their numerical id. The numerical id often changes and sometimes just straight up doesn't work. So using the name "hw:__#__,0" works much better. If in the case that you run the launch file and keep getting an error something along the lines of unable to find the mic, then just close all your open terminals and restart roscore and relaunch the files. You shouldn't need to do this, but also this should always work (given that all your code is correct)
 
-# Running this in terminal:
+# Running in terminal:
 In terminal, make sure you run `roscore` first before trying to run the other files
 
 Once you have `roscore` up and running, open another terminal window or tab and run `roslaunch team_meeting_project send_speech_to_tablet.launch` or `roslaunch team_meeting_project send_speech_to_local.launch` whether you want to run the code with a TCP connection to a tablet or locally without the need for the TCP connection
 
-In another terminal window or tab run `roslaunch ros_speech2text ros_speech2text.launch` to run with only one mic or `roslaunch ros_speech2text ros_speech2text_[insert number 2-4]mics.launch` depending on how many mics you want to run with. For example if I want to run with 3 mics, I would run `roslaunch ros_speech2text ros_speech2text_3mics.launch`
+In another terminal window or tab run `roslaunch ros_speech2text ros_speech2text.launch` to run with only one mic or `roslaunch ros_speech2text ros_speech2text_[2, 3, or 4]mics.launch` depending on how many mics you want to run with. For example if I want to run with 3 mics, I would run `roslaunch ros_speech2text ros_speech2text_3mics.launch`
 
 __Warning:__
 In the case that the mics become, for whatever reason, out of order (i.e. mic 1 is no longer associated with pid 1), then unplug all of the mics, and run the different launch files in order of increasing number of mics while adding the appropriate mics one at a time.
 For example, with all of mics unplugged, insert the receiver for mic 1 and then run `roslaunch ros_speech2text ros_speech2text.launch` then add the second mic receiver and run the launch file for 2 mics and so on. You may need to exit out of all open terminals and restart terminals.
 
-If you want to control whether or not to use the start_utterance messages, look in the `ros_speech2text` launch files and find the parameter `enable_start_utterance"`.
+If you want to control whether or not to use the start_utterance messages, look in the `ros_speech2text` launch files and find the parameter `enable_start_utterance`.
 
 # Using the updated Google-cloud speech-to-text API
 Take a look at these pages (navigating Google's documentation can be kind of annoying sometimes):
