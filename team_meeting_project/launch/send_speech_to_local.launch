@@ -4,7 +4,7 @@
 
     <!-- starts node for asynchronous s2t /-->
     <node pkg="team_meeting_project" name="send_speech_to_tablet_node" type="send_speech_to_tablet.py" output="screen">
-    	<param    name ="type" value="tablet" />
+    	<param    name ="type" value="local" />
     </node>
 
 </launch>
