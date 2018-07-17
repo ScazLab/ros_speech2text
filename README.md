@@ -10,6 +10,10 @@ You should also cross reference [this](http://wiki.ros.org/kinetic/Installation/
 
 Once you have made sure that you have built and sourced your new catkin_ws, make sure to make your scripts executable. In terminal, go to the location of your python scripts. For this specific project, these are located in `scripts` folders. Once there, run `chmod +x [name of file]` and open a new terminal and you should be able to run using roslaunch.
 
+You may also run into some problems with `pip` if you are starting from scratch (i.e. fresh installation of Ubuntu 16.04). One error I got a bunch was `AttributeError: 'module' object has no attribute 'SSL_ST_INIT'`. To fix this, just run `sudo python -m easy_install --upgrade pyOpenSSL` and it should be fine.
+
+For most all other warnings and errors, you should be able to just do something like `sudo pip install [name] --upgrade`.
+
 Just make sure that before trying to do `pip install pyaudio` you run this line first `sudo apt-get install libasound-dev portaudio19-dev libportaudio2 libportaudiocpp0`
 
 __NOTE:__ "SAMSON STAGE PXD1" microphones were used in our project, and if you want to use them again, open up the back and use the screwdriver to set the gain to in between the fourth and fifth tick from the bottom. This sets the sensitivity to a place that easily detects the wearer's voice but not other sounds/voices. But test this yourself because depending on the surroundings, you may need higher or lower sensitivity. Also, make sure to have the mics directly facing your mouth and not to the side of your mouth, or you may get unpleasant results.
