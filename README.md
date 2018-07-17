@@ -14,7 +14,7 @@ __NOTE:__ "SAMSON STAGE PXD1" microphones were used in our project, and if you w
 
 When creating individual nodes for the SAMSON mics, use the option to set the mics based on their names and not their numerical id. The numerical id often changes and sometimes just straight up doesn't work. So using the name "hw:__#__,0" works much better. If in the case that you run the launch file and keep getting an error something along the lines of unable to find the mic, then just close all your open terminals and restart roscore and relaunch the files. You shouldn't need to do this, but also this should always work (given that all your code is correct)
 
-# Running this code:
+# Running this in terminal:
 In terminal, make sure you run `roscore` first before trying to run the other files
 
 Once you have `roscore` up and running, open another terminal window or tab and run `roslaunch team_meeting_project send_speech_to_tablet.launch` or `roslaunch team_meeting_project send_speech_to_local.launch` whether you want to run the code with a TCP connection to a tablet or locally without the need for the TCP connection
