@@ -16,6 +16,8 @@ For most all other warnings and errors, you should be able to just do something 
 
 Just make sure that before trying to do `pip install pyaudio` you run this line first `sudo apt-get install libasound-dev portaudio19-dev libportaudio2 libportaudiocpp0`
 
+Also it would probably be in your best interests to move the `team_meeting_project` folder up to the same level as the `ros_speech2text` folder.
+
 __NOTE:__ "SAMSON STAGE PXD1" microphones were used in our project, and if you want to use them again, open up the back and use the screwdriver to set the gain to in between the fourth and fifth tick from the bottom. This sets the sensitivity to a place that easily detects the wearer's voice but not other sounds/voices. But test this yourself because depending on the surroundings, you may need higher or lower sensitivity. Also, make sure to have the mics directly facing your mouth and not to the side of your mouth, or you may get unpleasant results.
 
 When creating individual nodes for the SAMSON mics, use the option to set the mics based on their names and not their numerical id. The numerical id often changes and sometimes just straight up doesn't work. So using the name "hw:__#__,0" works much better. If in the case that you run the launch file and keep getting an error something along the lines of unable to find the mic, then just close all your open terminals and restart roscore and relaunch the files. You shouldn't need to do this, but also this should always work (given that all your code is correct)
