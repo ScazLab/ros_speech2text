@@ -34,7 +34,7 @@ sudo pip install pyaudio
 
 ## Google Cloud Speech + Google Cloud Credentials
 
-You'll need to install [google cloud speech](https://cloud.google.com/speech-to-text/docs/reference/libraries#client-libraries-install-python): `pip install --upgrade google-cloud-speech`. 
+You'll need to install [google cloud speech](https://cloud.google.com/speech-to-text/docs/reference/libraries#client-libraries-install-python): `sudo pip install --upgrade google-cloud-speech`. And [google-gax](https://pypi.org/project/google-gax/): `sudo pip install google-gax`.
 
 You'll also need to get a JSON google application credentials key from your google cloud account. You'll put this file in your `ros_speech2text` package and link to it in the launch files. 
 
