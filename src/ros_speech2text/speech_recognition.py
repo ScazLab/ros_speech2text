@@ -172,10 +172,11 @@ class SpeechRecognizer(object):
                     start_speech = True
                     self.record_to_file(aud_data, sn)
                     aud_data = None
-                    # print(sn)
                     try:
-                        transc, confidence = self.recog(sn)
-                        self.utterance_decoded(sn, transc, confidence, start_time, end_time)
+                        recog_thread = Thread(target=self.recog, args=(sn, start_time, end_time, ))
+                        recog_thread.start()
+                        # transc, confidence = self.recog(sn)
+                        # self.utterance_decoded(sn, transc, confidence, start_time, end_time)
                     except Exception as e:
                         rospy.logerr("Error in recognition: {}".format(e))
                 sn += 1
@@ -191,10 +192,11 @@ class SpeechRecognizer(object):
                 else:
                     self.record_to_file(aud_data, sn)
                     aud_data = None
-                    # print(sn)
                     try:
-                        transc, confidence = self.recog(sn)
-                        self.utterance_decoded(sn, transc, confidence, start_time, end_time)
+                        recog_thread = Thread(target=self.recog, args=(sn, start_time, end_time, ))
+                        recog_thread.start()
+                        # transc, confidence = self.recog(sn)
+                        # self.utterance_decoded(sn, transc, confidence, start_time, end_time)
                     except Exception as e:
                         rospy.logerr("Error in recognition: {}".format(e))
                 sn += 1
@@ -239,7 +241,7 @@ class SpeechRecognizer(object):
         event_msg = self.get_event_base_message(event.DECODED, utterance_id)
         event_msg.transcript = transcript_msg
         if self.print_level > 0:
-            rospy.loginfo("{} [confidence: {}]".format(transcription, confidence))
+            rospy.loginfo("({}) {} [confidence: {}]".format(self.pid, transcription, confidence))
         self.pub_transcript.publish(transcript_msg)
         self.pub_text.publish(transcription)
         self.pub_event.publish(event_msg)
@@ -294,7 +296,7 @@ class SpeechRecognizer(object):
         wf.close()
         rospy.logdebug('File saved to {}'.format(path))
 
-    def recog(self, utterance_id):
+    def recog(self, utterance_id, utterance_start_time, utterance_end_time):
         context = rospy.get_param(self.node_name + '/speech_context', [])
         path = self.utterance_file(utterance_id)
 
@@ -315,10 +317,9 @@ class SpeechRecognizer(object):
                operation = self.speech_client.long_running_recognize(config, audio)
                op_result = operation.result()
                for result in op_result.results:
-                  for alternative in result.alternatives:
-                     print(self.pid)
-                     print(alternative)
-                     return alternative.transcript, alternative.confidence
+                    for alternative in result.alternatives:
+                        self.utterance_decoded(utterance_id, alternative.transcript,
+                            alternative.confidence, utterance_start_time, utterance_end_time)
             except Exception as e:
                 rospy.logerr("Error in asynchronous recognition: {}".format(e))
         else:
@@ -327,8 +328,8 @@ class SpeechRecognizer(object):
                 if response.results is not None:
                     for result in response.results:
                         if result.alternatives[0].transcript is not None:
-                            print(self.pid)
-                            print(result.alternatives[0])
-                            return result.alternatives[0].transcript, result.alternatives[0].confidence
+                            self.utterance_decoded(utterance_id, result.alternatives[0].transcript,
+                                result.alternatives[0].confidence, utterance_start_time, utterance_end_time)
+                            return
             except Exception as e:
                 rospy.logerr("Error in synchronous recognition: {}".format(e))
