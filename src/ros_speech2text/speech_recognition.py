@@ -143,7 +143,7 @@ class SpeechRecognizer(object):
     def _init_csv(self):
         self.csv_file = open(os.path.join(self.history_dir, 'transcript'), 'wb')
         self.csv_writer = csv.writer(self.csv_file, delimiter=' ',)
-        self.csv_writer.writerow(['start', 'end', 'duration', 'transcript', 'confidence'])
+        self.csv_writer.writerow(['utterance_id', 'start', 'end', 'duration', 'transcript', 'confidence'])
 
     def run(self):
         # sn is only really used for saving the audio files under different names
@@ -178,6 +178,7 @@ class SpeechRecognizer(object):
                         self.utterance_decoded(sn, transc, confidence, start_time, end_time)
                     except Exception as e:
                         rospy.logerr("Error in recognition: {}".format(e))
+                sn += 1
         else:
             while not rospy.is_shutdown():
                 aud_data = None
@@ -196,7 +197,7 @@ class SpeechRecognizer(object):
                         self.utterance_decoded(sn, transc, confidence, start_time, end_time)
                     except Exception as e:
                         rospy.logerr("Error in recognition: {}".format(e))
-        sn += 1
+                sn += 1
         self.terminate()
 
     def terminate(self):
@@ -243,7 +244,7 @@ class SpeechRecognizer(object):
         self.pub_text.publish(transcription)
         self.pub_event.publish(event_msg)
         self.csv_writer.writerow([
-            start_time, end_time, transcript_msg.speech_duration,
+            utterance_id, start_time, end_time, transcript_msg.speech_duration,
             transcription, confidence])
 
     # Send message through ROS that utterance has started
