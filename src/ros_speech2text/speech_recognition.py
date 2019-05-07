@@ -2,6 +2,7 @@ import os
 import io
 import csv
 import shutil
+from datetime import datetime
 from struct import pack
 from threading import Thread
 import time
@@ -48,10 +49,10 @@ class SpeechRecognizer(object):
         pass
 
     def __init__(self):
-        self._init_history_directory()
         self.node_name = rospy.get_name()
         self.pid = rospy.get_param(self.node_name + '/pid', -1)
-        self.print_level = rospy.get_param('/print_level', 0)
+        self._init_history_directory()
+        self.print_level = rospy.get_param(self.node_name + '/print_level', 0)
         # ROS message for the speech transcript
         self.pub_transcript = rospy.Publisher(
             self.TOPIC_BASE + '/transcript', transcript, queue_size=10)
@@ -98,9 +99,11 @@ class SpeechRecognizer(object):
         self.run()
 
     def _init_history_directory(self):
-        param = rospy.get_param('/ros_speech2text/speech_history',
+        param = rospy.get_param(self.node_name + '/speech_history',
                                 '~/.ros/ros_speech2text/speech_history')
-        self.history_dir = os.path.expanduser(os.path.join(param, str(os.getpid())))
+        date_and_time = datetime.now().isoformat()
+        datetime_and_pid_folder_name = date_and_time + "_pid_" + str(self.pid)
+        self.history_dir = os.path.expanduser(os.path.join(param, datetime_and_pid_folder_name))
         if not os.path.isdir(self.history_dir):
             os.makedirs(self.history_dir)
 
@@ -169,7 +172,7 @@ class SpeechRecognizer(object):
                     start_speech = True
                     self.record_to_file(aud_data, sn)
                     aud_data = None
-                    print(sn)
+                    # print(sn)
                     try:
                         transc, confidence = self.recog(sn)
                         self.utterance_decoded(sn, transc, confidence, start_time, end_time)
@@ -187,7 +190,7 @@ class SpeechRecognizer(object):
                 else:
                     self.record_to_file(aud_data, sn)
                     aud_data = None
-                    print(sn)
+                    # print(sn)
                     try:
                         transc, confidence = self.recog(sn)
                         self.utterance_decoded(sn, transc, confidence, start_time, end_time)
@@ -312,6 +315,7 @@ class SpeechRecognizer(object):
                op_result = operation.result()
                for result in op_result.results:
                   for alternative in result.alternatives:
+                     print(self.pid)
                      print(alternative)
                      return alternative.transcript, alternative.confidence
             except Exception as e:
@@ -322,6 +326,7 @@ class SpeechRecognizer(object):
                 if response.results is not None:
                     for result in response.results:
                         if result.alternatives[0].transcript is not None:
+                            print(self.pid)
                             print(result.alternatives[0])
                             return result.alternatives[0].transcript, result.alternatives[0].confidence
             except Exception as e:
