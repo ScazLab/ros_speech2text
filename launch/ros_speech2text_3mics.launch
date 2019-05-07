@@ -1,6 +1,6 @@
 <launch>
     <!-- sets env var for google apis to work /-->
-    <env      name ="GOOGLE_APPLICATION_CREDENTIALS"   value="$(find ros_speech2text)/ros-speech2text-google-stt-cred" />
+    <env      name ="GOOGLE_APPLICATION_CREDENTIALS"   value="$(find ros_speech2text)/ros-speech2text-google-stt-cred.json" />
 
     <!-- starts node for asynchronous s2t /-->
     <node pkg="ros_speech2text" name="ros_speech2text1" type="s2t.py" output="screen">

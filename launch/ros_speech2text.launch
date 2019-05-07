@@ -1,6 +1,6 @@
 <launch>
     <!-- sets env var for google apis to work /-->
-    <env      name ="GOOGLE_APPLICATION_CREDENTIALS"   value="$(find ros_speech2text)/ros-speech2text-google-stt-cred" />
+    <env      name ="GOOGLE_APPLICATION_CREDENTIALS"   value="$(find ros_speech2text)/ros-speech2text-google-stt-cred.json" />
 
     <!-- starts node for asynchronous s2t /-->
     <node pkg="ros_speech2text" name="ros_speech2text1" type="s2t.py" output="screen">
@@ -15,7 +15,7 @@
         <!-- <param    name ="audio_device_idx" value="7" /> -->
 
         <!-- device name of audio source. Only used if audio_device_idx is not set. Uses the first device that contains the given name (case insensitive). /-->
-        <param    name ="audio_device_name" value="hw:1,0" /> 
+        <param    name ="audio_device_name" value="hw:2,0" /> 
 
         <!-- rate for your audio capturing device /-->
         <param    name ="audio_rate" value="16000" />
