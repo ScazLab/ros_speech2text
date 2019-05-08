@@ -241,7 +241,7 @@ class SpeechRecognizer(object):
         event_msg = self.get_event_base_message(event.DECODED, utterance_id)
         event_msg.transcript = transcript_msg
         if self.print_level > 0:
-            rospy.loginfo("({}) {} [confidence: {}]".format(self.pid, transcription, confidence))
+            rospy.loginfo("(pid {}) {} [confidence: {}]".format(self.pid, transcription, confidence))
         self.pub_transcript.publish(transcript_msg)
         self.pub_text.publish(transcription)
         self.pub_event.publish(event_msg)
@@ -252,6 +252,8 @@ class SpeechRecognizer(object):
     # Send message through ROS that utterance has started
     def get_utterance_started(self):
         utterance_start_pid = self.get_start_utterance()
+        if self.print_level > 0:
+            rospy.loginfo("(pid {}) Sending start utterance message".format(self.pid))
         self.pub_start.publish(utterance_start_pid)
 
     def get_transcript_message(self, transcription, confidence, start_time,

@@ -20,6 +20,8 @@ Once you have made sure that you have built and sourced your new catkin_ws, make
 
 Make sure you have pip installed, for Python2 the command is: `sudo apt install python-pip`
 
+If you upgrade your version of pip you may see an error when trying to use pip about the line `from pip import main`. I was able to get rid of this error by changing the line `from pip import main` to `from pip._internal import main` in the file `usr/bin/pip`.
+
 You may also run into some problems with `pip` if you are starting from scratch (i.e. fresh installation of Ubuntu 16.04). One error I (Nick) got a bunch was `AttributeError: 'module' object has no attribute 'SSL_ST_INIT'`. To fix this, just run `sudo python -m easy_install --upgrade pyOpenSSL` and it should be fine.
 
 For most all other warnings and errors, you should be able to just do something like `sudo pip install [name] --upgrade`.
