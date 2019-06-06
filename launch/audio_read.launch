@@ -1,0 +1,17 @@
+
+<launch>
+    <arg name="input_file" />
+    <arg name="output_stream" />
+    <node
+      pkg="ros_speech2text"
+      name="$(anon audio_read)"
+      type="audio_read.py"
+      output="screen"
+      >
+        <param    name="input_file" value="$(arg input_file)" />
+
+        <param    name="output_stream" value="$(arg output_stream)" />
+
+        <param    name="frames_per_buffer" value="1024" />
+    </node>
+</launch>

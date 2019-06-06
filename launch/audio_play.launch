@@ -1,0 +1,11 @@
+<launch>
+    <arg name="input_stream" />
+    <node
+      pkg="ros_speech2text"
+      name="$(anon audio_play)"
+      type="audio_play.py"
+      output="screen"
+      >
+        <param    name="input_stream" value="$(arg input_stream)" />
+    </node>
+</launch>

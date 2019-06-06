@@ -1,0 +1,14 @@
+<launch>
+    <env name ="GOOGLE_APPLICATION_CREDENTIALS" value="$(find ros_speech2text)/ros-speech2text-google-stt-cred.json" />
+    <arg name="input_stream" />
+    <arg name="output_stream" />
+    <node
+      pkg="ros_speech2text"
+      name="$(anon speech_recognize)"
+      type="speech_recognize.py"
+      output="screen"
+      >
+        <param    name="input_stream" value="$(arg input_stream)" />
+        <param    name="output_stream" value="$(arg output_stream)" />
+    </node>
+</launch>

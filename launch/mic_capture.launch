@@ -1,0 +1,29 @@
+<launch>
+    <arg name="device_name" />
+    <arg name="output_stream" />
+    <node
+      pkg="ros_speech2text"
+      name="$(anon mic_capture)"
+      type="mic_capture.py"
+      output="screen"
+      >
+        <!-- <param    name ="device_index" value="7" /> -->
+
+        <!-- device name of audio source. Only used if audio_device_idx is not set. Uses the first device that contains the given name (case insensitive). /-->
+        <param    name="device_name" value="$(arg device_name)" />
+
+        <!-- Choose any name for the output stream. Messages will be sent to /ros_speech2text/mic_capture/(output_stream)/(subtopic) -->
+        <param    name="output_stream" value="$(arg output_stream)" />
+
+        <!-- if not provided and device default is available, device default is used -->
+        <param    name="sample_rate" value="16000" />
+
+        <param    name="num_channels" value="1" />
+
+        <!-- sample width in bytes -->
+        <param    name="sample_width" value="2" />
+
+        <param    name="frames_per_buffer" value="1024" />
+
+    </node>
+</launch>

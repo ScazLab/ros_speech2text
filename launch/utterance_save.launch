@@ -1,0 +1,15 @@
+
+<launch>
+    <arg name="input_stream" />
+    <arg name="output_directory" />
+    <node
+      pkg="ros_speech2text"
+      name="$(anon utterance_save)"
+      type="utterance_save.py"
+      output="screen"
+      >
+        <param    name="input_stream" value="$(arg input_stream)" />
+        <param    name="file_prefix" value="utt" />
+        <param    name="output_directory" value="$(arg output_directory)" />
+    </node>
+</launch>

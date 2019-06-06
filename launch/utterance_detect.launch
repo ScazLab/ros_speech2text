@@ -1,0 +1,27 @@
+<launch>
+  <arg name="input_stream" />
+  <arg name="output_stream" />
+  <node
+    pkg="ros_speech2text"
+    name="$(anon utterance_detect)"
+    type="utterance_detect.py"
+    output="screen"
+    >
+    <param    name="input_stream" value="$(arg input_stream)" />
+    <param    name="output_stream" value="$(arg output_stream)" />
+
+    <!-- in milliseconds -->
+    <param    name="sd_block_duration" value="50" />
+    <param    name="leading_noise_duration" value="500" />
+    <param    name="trailing_silence_duration" value="500" />
+
+    <!-- in bytes -->
+    <param    name="min_output_chunk_size" value="100" />
+
+    <!-- <param    name="calibrate" value="True" /> -->
+
+    <!-- minimum: 0, maximum: 100 -->
+    <param    name="threshold_pct" value="25"   />
+
+  </node>
+</launch>
