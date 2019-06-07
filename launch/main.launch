@@ -1,0 +1,36 @@
+<launch>
+  <arg name="device1" value="hw:2,0"/>
+  <arg name="device2" value="hw:3,0"/>
+  <arg name="device3" value="hw:4,0"/>
+  <arg name="conf_device" value="hw:5,0"/>
+  <arg name="alias1" value="alice"/>
+  <arg name="alias2" value="bob"/>
+  <arg name="alias3" value="carlos"/>
+
+  <include file="$(find ros_speech2text)/launch/device.launch">
+    <arg name="device_name" value="$(arg device1)" />
+    <arg name="alias" value="$(arg alias1)" />
+  </include>
+
+  <include file="$(find ros_speech2text)/launch/device.launch">
+    <arg name="device_name" value="$(arg device2)" />
+    <arg name="alias" value="$(arg alias2)" />
+  </include>
+
+  <include file="$(find ros_speech2text)/launch/device.launch">
+    <arg name="device_name" value="$(arg device3)" />
+    <arg name="alias" value="$(arg alias3)" />
+  </include>
+
+  <include file="$(find ros_speech2text)/launch/mic_capture.launch">
+    <arg name="device_name" value="$(arg conf_device)" />
+    <arg name="output_stream" value="conference" />
+  </include>
+
+  <include file="$(find ros_speech2text)/launch/audio_save.launch">
+    <arg name="input_stream" value="conference" />
+    <arg name="file_prefix" value="conference" />
+    <arg name="output_directory" value="$(find ros_speech2text)/audio" />
+  </include>
+
+</launch>
