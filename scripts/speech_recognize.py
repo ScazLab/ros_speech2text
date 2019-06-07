@@ -28,7 +28,8 @@ def callback(msg, cb_args):
     response = speech_client.recognize(config, audio)
     if response.results:
         transcript = response.results[0].alternatives[0].transcript
-        pub_transcript.publish(transcript, msg.start_time, msg.duration, msg.index)
+        confidence = response.results[0].alternatives[0].confidence
+        pub_transcript.publish(transcript, confidence, msg.start_time, msg.duration, msg.index)
         rospy.loginfo('Transcript: ' + transcript)
     else:
         rospy.loginfo('Speech not recognized.')
