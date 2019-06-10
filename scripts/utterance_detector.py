@@ -60,14 +60,19 @@ class UtteranceDetector(object):
 
         if silent and self.in_utterance:
             self.silence.put(self.block.get(), t)
-            self.noise.reset()
         if not silent and not self.in_utterance:
             self.noise.put(self.block.get(), t)
-            self.silence.reset()
         if not silent and self.in_utterance:
-            self.utterance.put(self.silence.get(), t)
-            self.silence.reset()
-            self.utterance.put(self.block.get(), t)
+            # Add the contents of silence to the utterance, if there are any
+            start_time = self.block.start_time
+            total = self.block.get()
+            if self.silence.get().size > 0:
+                start_time = self.silence.start_time
+                total = np.append(self.silence.get(), total)
+                self.silence.reset()
+            self.utterance.put(total, start_time)
+            self.callback.on_utterance_chunk(total, start_time)
+
 
         if self.is_utterance_starting:
             self.in_utterance = True
