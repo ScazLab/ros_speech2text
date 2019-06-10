@@ -19,13 +19,12 @@ def subscriber_callback(msg, cb_args):
         # You missed your turn!
         # This message will be ignored.
         return
-
-    audio_chunk = np.frombuffer(str(msg.chunk), dtype=dtype)
-
-    utterance_detector.put_audio_chunk(audio_chunk, msg.time)
-
-    # Don't forget to free up the semaphore for the next message
-    semaphore.exit()
+    try:
+        audio_chunk = np.frombuffer(str(msg.chunk), dtype=dtype)
+        utterance_detector.put_audio_chunk(audio_chunk, msg.time)
+    finally:
+        # Don't forget to free up the semaphore for the next message
+        semaphore.exit()
 
 class Callback(UtteranceDetectorCallback):
     def __init__(self, audio_config, min_output_chunk_size, dtype):
