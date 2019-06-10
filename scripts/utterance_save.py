@@ -22,7 +22,7 @@ def callback(msg):
     if config.endianness == 'big':
         chunk = switch_endianness(chunk, config.sample_width)
 
-    filename = path.join(dir, prefix + str(datetime.datetime.now()) + '.wav')
+    filename = path.join(dir, prefix + str(msg.index) + '.wav')
     wf = wave.open(filename, 'wb')
     wf.setnchannels(config.num_channels)
     wf.setframerate(config.sample_rate)
@@ -30,5 +30,5 @@ def callback(msg):
     wf.writeframes(chunk)
     wf.close()
 
-rospy.Subscriber(input_stream + '/complete', Utterance, callback)
+rospy.Subscriber(input_stream, Utterance, callback)
 rospy.spin()

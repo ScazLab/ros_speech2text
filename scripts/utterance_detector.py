@@ -35,7 +35,7 @@ class UtteranceDetector(object):
 
     def is_silent(self, data):
         if self.verbose:
-            print round(np.abs(data).max() / float(self.max), 4)
+            print round(np.abs(data).max() / float(self.max), 6)
         return np.abs(data).max() < self.threshold
 
     def length2time(self, length):
