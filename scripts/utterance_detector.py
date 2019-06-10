@@ -76,10 +76,10 @@ class UtteranceDetector(object):
 
         if self.is_utterance_starting:
             self.in_utterance = True
-            # This will set the utterance's start time
             self.callback.on_utterance_started(self.noise.start_time)
             self.utterance.put(self.noise.get(), self.noise.start_time)
             self.callback.on_utterance_chunk(self.noise.get(), self.noise.start_time)
+            self.noise.reset()
 
         elif self.is_utterance_ending:
             self.in_utterance = False
