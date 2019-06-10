@@ -29,6 +29,9 @@ def subscriber_callback(msg, cb_args):
 class Callback(UtteranceDetectorCallback):
     def __init__(self, audio_config, min_output_chunk_size, dtype):
         self.buffer = OtherBuffer(min_output_chunk_size, dtype)
+        self.chunk_index = 0
+        self.utterance_index = 0
+        self.audio_config = audio_config
 
         self.pub_started = rospy.Publisher(output_stream + '/started', StartUtterance).publish
         rospy.loginfo('Publishing started flags to {}'.format(output_stream + '/started'))
@@ -38,9 +41,6 @@ class Callback(UtteranceDetectorCallback):
         rospy.loginfo('Publishing completed utterances to {}'.format(output_stream + '/complete'))
         self.pub_chunk = rospy.Publisher(output_stream + '/chunk', UtteranceChunk).publish
         rospy.loginfo('Publishing utterance chunks to {}'.format(output_stream + '/chunk'))
-        self.chunk_index = 0
-        self.utterance_index = 0
-        self.audio_config = audio_config
 
     def on_utterance_started(self, timestamp):
         rospy.loginfo('Utterance started at time: %s' % str(timestamp))
@@ -49,17 +49,20 @@ class Callback(UtteranceDetectorCallback):
 
     def on_utterance_completed(self, utterance, start_time, duration):
         rospy.loginfo('Utterance completed. Start time: %s, Duration: %s.' % (start_time, duration))
-        chk = AudioChunk(utterance.tostring(), start_time, None)
+
+        # Process what's left in the buffer
+        self.process_buffer(True)
+
         self.pub_ended(start_time,
                           duration,
                           self.utterance_index)
+
+        chk = AudioChunk(utterance.tostring(), start_time, 0)
         self.pub_complete(chk,
                           self.audio_config,
                           start_time,
                           duration,
                           self.utterance_index)
-        # Process what's left in the buffer
-        self.process_buffer(True)
 
     def on_utterance_chunk(self, chunk, start_time):
         self.buffer.put(chunk, start_time)
@@ -77,6 +80,7 @@ class Callback(UtteranceDetectorCallback):
         self.buffer.reset()
         if is_end:
             self.utterance_index += 1
+            self.chunk_index = 0
 
 if __name__ == '__main__':
     rospy.init_node('utterance_detect', anonymous = True)
