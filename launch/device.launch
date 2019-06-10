@@ -1,6 +1,6 @@
 <launch>
-  <arg name="device_name"/>
-  <arg name="alias" />
+  <arg name="device_name" />
+  <arg name="alias" default="hat" />
 
   <include file="$(find ros_speech2text)/launch/mic_capture.launch">
     <arg name="device_name" value="$(arg device_name)" />
@@ -16,11 +16,6 @@
   <include file="$(find ros_speech2text)/launch/utterance_detect.launch">
     <arg name="input_stream" value="$(arg alias)" />
     <arg name="output_stream" value="$(arg alias)/utterances" />
-  </include>
-
-  <include file="$(find ros_speech2text)/launch/utterance_save.launch">
-    <arg name="input_stream" value="$(arg alias)" />
-    <arg name="output_directory" value="$(find ros_speech2text)/audio" />
   </include>
 
   <include file="$(find ros_speech2text)/launch/utterance_save.launch">

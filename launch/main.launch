@@ -3,9 +3,9 @@
   <arg name="device2" value="hw:3,0"/>
   <arg name="device3" value="hw:4,0"/>
   <arg name="conf_device" value="hw:5,0"/>
-  <arg name="alias1" value="alice"/>
-  <arg name="alias2" value="bob"/>
-  <arg name="alias3" value="carlos"/>
+  <arg name="alias1" value="pid1"/>
+  <arg name="alias2" value="pid2"/>
+  <arg name="alias3" value="pid3"/>
 
   <include file="$(find ros_speech2text)/launch/device.launch">
     <arg name="device_name" value="$(arg device1)" />
