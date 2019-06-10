@@ -48,9 +48,6 @@ class UtteranceDetector(object):
         i = 0
         while (i < audio_chunk.size):
             added = self.block.put(audio_chunk[i:], timestamp)
-
-            if self.in_utterance:
-                self.callback.on_utterance_chunk(audio_chunk[i:(i+added)], timestamp)
             i += added
 
             if self.block.is_full:
