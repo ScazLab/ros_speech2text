@@ -11,7 +11,7 @@ from utilities import dtype_from_width
 
 from std_msgs.msg import String, Time
 from ros_speech2text.srv import AudioConfig
-from ros_speech2text.msg import AudioChunk, UtteranceChunk, Utterance
+from ros_speech2text.msg import AudioChunk, UtteranceChunk, Utterance, StartUtterance, EndUtterance
 
 def subscriber_callback(msg, cb_args):
     (semaphore, dtype, utterance_detector) = cb_args
@@ -31,8 +31,10 @@ class Callback(UtteranceDetectorCallback):
     def __init__(self, audio_config, min_output_chunk_size, dtype):
         self.buffer = OtherBuffer(min_output_chunk_size, dtype)
 
-        self.pub_started = rospy.Publisher(output_stream + '/started', Time).publish
+        self.pub_started = rospy.Publisher(output_stream + '/started', StartUtterance).publish
         rospy.loginfo('Publishing started flags to {}'.format(output_stream + '/started'))
+        self.pub_ended = rospy.Publisher(output_stream + '/ended', EndUtterance).publish
+        rospy.loginfo('Publishing ended flags to {}'.format(output_stream + '/ended'))
         self.pub_complete = rospy.Publisher(output_stream + '/complete', Utterance).publish
         rospy.loginfo('Publishing completed utterances to {}'.format(output_stream + '/complete'))
         self.pub_chunk = rospy.Publisher(output_stream + '/chunk', UtteranceChunk).publish
@@ -43,12 +45,15 @@ class Callback(UtteranceDetectorCallback):
 
     def on_utterance_started(self, timestamp):
         rospy.loginfo('Utterance started at time: %s' % str(timestamp))
-        self.pub_started(timestamp)
+        self.pub_started(timestamp, self.utterance_index)
         self.buffer.start_time = timestamp
 
     def on_utterance_completed(self, utterance, start_time, duration):
         rospy.loginfo('Utterance completed. Start time: %s, Duration: %s.' % (start_time, duration))
         chk = AudioChunk(utterance.tostring(), start_time, None)
+        self.pub_ended(start_time,
+                          duration,
+                          self.utterance_index)
         self.pub_complete(chk,
                           self.audio_config,
                           start_time,

@@ -16,10 +16,11 @@ add_message_files(
   FILES
   AudioChunk.msg
   AudioConfigM.msg
-  StartUtterance.msg
-  Transcript.msg
   Utterance.msg
   UtteranceChunk.msg
+  StartUtterance.msg
+  EndUtterance.msg
+  Transcript.msg
 )
 
 add_service_files(
