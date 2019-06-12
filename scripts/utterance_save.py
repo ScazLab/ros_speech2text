@@ -22,7 +22,7 @@ def callback(msg):
     if config.endianness == 'big':
         chunk = switch_endianness(chunk, config.sample_width)
 
-    filename = path.join(dir, prefix + str(msg.index) + '.wav')
+    filename = path.join(dir, prefix + '_' + str(msg.index) + '.wav')
     wf = wave.open(filename, 'wb')
     wf.setnchannels(config.num_channels)
     wf.setframerate(config.sample_rate)

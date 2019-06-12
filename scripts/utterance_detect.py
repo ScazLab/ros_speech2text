@@ -27,23 +27,20 @@ def subscriber_callback(msg, cb_args):
         semaphore.exit()
 
 class Callback(UtteranceDetectorCallback):
-    def __init__(self, audio_config, min_output_chunk_size, dtype):
+    def __init__(self, audio_config, min_output_chunk_size, dtype, output_stream):
         self.buffer = OtherBuffer(min_output_chunk_size, dtype)
         self.chunk_index = 0
         self.utterance_index = 0
         self.audio_config = audio_config
+        self.output_stream = output_stream
 
         self.pub_started = rospy.Publisher(output_stream + '/started', StartUtterance).publish
-        rospy.loginfo('Publishing started flags to {}'.format(output_stream + '/started'))
         self.pub_ended = rospy.Publisher(output_stream + '/ended', EndUtterance).publish
-        rospy.loginfo('Publishing ended flags to {}'.format(output_stream + '/ended'))
         self.pub_complete = rospy.Publisher(output_stream + '/complete', Utterance).publish
-        rospy.loginfo('Publishing completed utterances to {}'.format(output_stream + '/complete'))
         self.pub_chunk = rospy.Publisher(output_stream + '/chunk', UtteranceChunk).publish
-        rospy.loginfo('Publishing utterance chunks to {}'.format(output_stream + '/chunk'))
 
     def on_utterance_started(self, timestamp):
-        rospy.loginfo('Utterance started at time: %s' % str(timestamp))
+        rospy.loginfo('Utterance by ' + self.output_stream + ' at ' + str(timestamp))
         self.pub_started(timestamp, self.utterance_index)
         self.buffer.start_time = timestamp
 
@@ -122,7 +119,7 @@ if __name__ == '__main__':
         size = min_output_chunk_size / config.sample_width
         size = int(size / config.num_channels) * config.num_channels
 
-    cb = Callback(config, size, dtype)
+    cb = Callback(config, size, dtype, output_stream)
     utterance_detector = UtteranceDetector(config.sample_rate, config.num_channels, dtype,
                         sd_block_duration, leading_noise_duration, trailing_silence_duration,
                         threshold_pct, calibrate, cb)

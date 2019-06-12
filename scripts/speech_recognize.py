@@ -10,7 +10,7 @@ from std_msgs.msg import String, Header, Time
 from ros_speech2text.msg import Utterance, Transcript
 
 def callback(msg, cb_args):
-    (speech_client, pub_transcript) = cb_args
+    (speech_client, pub_transcript, output_stream) = cb_args
 
     sample_rate = msg.audio_config.sample_rate
     chunk = msg.audio_chunk.chunk
@@ -28,7 +28,9 @@ def callback(msg, cb_args):
     response = speech_client.recognize(config, audio)
     if response.results:
         transcript = response.results[0].alternatives[0].transcript
-        pub_transcript.publish(transcript, msg.start_time, msg.duration, msg.index)
+        confidence = response.results[0].alternatives[0].confidence
+        pub_transcript.publish(transcript, msg.start_time, msg.duration, msg.index, confidence)
+        rospy.loginfo('From: ' + output_stream)
         rospy.loginfo('Transcript: ' + transcript)
     else:
         rospy.loginfo('Speech not recognized.')
@@ -46,5 +48,5 @@ if __name__ == '__main__':
 
     client = speech.SpeechClient()
 
-    rospy.Subscriber(input_stream + '/complete', Utterance, callback, (client, pub_transcript))
+    rospy.Subscriber(input_stream + '/complete', Utterance, callback, (client, pub_transcript, output_stream))
     rospy.spin()
