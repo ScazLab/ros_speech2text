@@ -7,14 +7,15 @@ class UtteranceDetector(object):
                 block_duration, leading_noise_duration, trailing_silence_duration,
                 threshold_pct, verbose, callback):
 
-        self.rate = sample_rate
-        self.num_channels = num_channels
         self.verbose = verbose
         self.callback = callback
 
-        self.block = BlockBuffer(self.time2length(block_duration / 1000.), dtype)
-        self.noise = OtherBuffer(self.time2length(leading_noise_duration / 1000.), dtype)
-        self.silence = OtherBuffer(self.time2length(trailing_silence_duration / 1000.), dtype)
+        def time2length(time):
+            return time * float(sample_rate) * num_channels
+
+        self.block = BlockBuffer(time2length(block_duration / 1000.), dtype)
+        self.noise = OtherBuffer(time2length(leading_noise_duration / 1000.), dtype)
+        self.silence = OtherBuffer(time2length(trailing_silence_duration / 1000.), dtype)
         self.utterance = Buffer(dtype)
 
         if np.issubdtype(dtype, int):
@@ -37,12 +38,6 @@ class UtteranceDetector(object):
         if self.verbose:
             print round(np.abs(data).max() / float(self.max), 6)
         return np.abs(data).max() < self.threshold
-
-    def length2time(self, length):
-        return length / float(self.num_channels) / self.rate
-
-    def time2length(self, time):
-        return int(self.rate * time) * self.num_channels
 
     def put_audio_chunk(self, audio_chunk, timestamp):
         i = 0
@@ -83,8 +78,7 @@ class UtteranceDetector(object):
 
         elif self.is_utterance_ending:
             self.in_utterance = False
-            duration = self.length2time(self.utterance.get().size)
-            self.callback.on_utterance_completed(self.utterance.get(), self.utterance.start_time, duration)
+            self.callback.on_utterance_completed(self.utterance.get(), self.utterance.start_time)
 
             self.utterance.reset()
             self.silence.hard_reset()
@@ -96,7 +90,7 @@ class UtteranceDetectorCallback(object):
     def on_utterance_started(self, timestamp):
         pass
 
-    def on_utterance_completed(self, utterance, start_time, duration):
+    def on_utterance_completed(self, utterance, start_time):
         pass
 
     def on_utterance_chunk(self, chunk, start_time):

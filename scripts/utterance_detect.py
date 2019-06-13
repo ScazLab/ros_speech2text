@@ -39,15 +39,19 @@ class Callback(UtteranceDetectorCallback):
         self.pub_complete = rospy.Publisher(output_stream + '/complete', Utterance).publish
         self.pub_chunk = rospy.Publisher(output_stream + '/chunk', UtteranceChunk).publish
 
+    def length2time(self, length):
+        return length / float(self.audio_config.num_channels) / self.audio_config.sample_rate
+
     def on_utterance_started(self, timestamp):
         rospy.loginfo('Utterance by ' + self.output_stream + ' at ' + str(timestamp))
         self.pub_started(timestamp, self.utterance_index)
         self.buffer.start_time = timestamp
 
-    def on_utterance_completed(self, utterance, start_time, duration):
+    def on_utterance_completed(self, utterance, start_time):
+        duration = self.length2time(utterance.size)
         rospy.loginfo('Utterance completed. Start time: %s, Duration: %s.' % (start_time, duration))
 
-        # Process what's left in the buffer
+        # Process what's left in the buffer, send is_end=True flag
         self.process_buffer(True)
 
         self.pub_ended(start_time,
@@ -67,9 +71,11 @@ class Callback(UtteranceDetectorCallback):
             self.process_buffer(False)
 
     def process_buffer(self, is_end):
+        duration = self.length2time(self.buffer.get().size)
         chk = AudioChunk(self.buffer.get().tostring(), self.buffer.start_time, self.chunk_index)
         self.pub_chunk(chk,
                        self.buffer.start_time,
+                       duration,
                        self.utterance_index,
                        self.chunk_index,
                        is_end)
