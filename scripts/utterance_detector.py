@@ -36,7 +36,7 @@ class UtteranceDetector(object):
 
     def is_silent(self, data):
         if self.verbose:
-            print round(np.abs(data).max() / float(self.max), 6)
+            print round(np.abs(data).max() / float(self.max) * 100, 6)
         return np.abs(data).max() < self.threshold
 
     def put_audio_chunk(self, audio_chunk, timestamp):

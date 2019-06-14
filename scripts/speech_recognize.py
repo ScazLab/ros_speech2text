@@ -1,13 +1,34 @@
 #!/usr/bin/env python
 
 import rospy
-
+import numpy as np
 from google.cloud import speech_v1p1beta1 as speech
 from google.cloud.speech_v1p1beta1 import enums
 from google.cloud.speech_v1p1beta1 import types
 
 from std_msgs.msg import String, Header, Time
 from ros_speech2text.msg import Utterance, Transcript
+
+NORMAL_MAXIMUM = 16384
+
+def normalize(snd_data):
+    """Average the volume out
+    """
+    r = snd_data * (NORMAL_MAXIMUM * 1. / max(1, np.abs(snd_data).max()))
+    return r.astype(snd_data.dtype)
+
+def add_silence(snd_data, rate, seconds):
+    """Adds silence of given length to the start and end of a chunk.
+    This prevents some players from skipping the first few frames.
+    :param snd_data: numpy array
+        sound chunk
+    :param rate: int
+        sampling rate
+    :param seconds: float
+        length of the silence to add
+    """
+    zeros = np.zeros((int(seconds * rate),), dtype=snd_data.dtype)
+    return np.hstack([zeros, snd_data, zeros])
 
 def callback(msg, cb_args):
     (speech_client, pub_transcript, output_stream, keywords) = cb_args
@@ -17,6 +38,14 @@ def callback(msg, cb_args):
 
     if msg.audio_config.sample_width != 2:
         raise Exception('Width ' + str(sample_width) + ' cannot be handled.')
+
+    chunk = np.fromstring(chunk, dtype=np.int16)
+    # normalize
+    chunk = normalize(chunk)
+    # add silence
+    chunk = add_silence(chunk, sample_rate, 1)
+
+    chunk = chunk.tostring()
 
     config = types.RecognitionConfig(
         encoding='LINEAR16',

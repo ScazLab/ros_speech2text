@@ -12,8 +12,8 @@
 
     <!-- in milliseconds -->
     <param    name="sd_block_duration" value="100" />
-    <param    name="leading_noise_duration" value="500" />
-    <param    name="trailing_silence_duration" value="1200" />
+    <param    name="leading_noise_duration" value="800" />
+    <param    name="trailing_silence_duration" value="1000" />
 
     <!-- in bytes -->
     <param    name="min_output_chunk_size" value="100" />
@@ -21,7 +21,7 @@
     <!-- <param    name="calibrate" value="True" /> -->
 
     <!-- minimum: 0, maximum: 100 -->
-    <param    name="threshold_pct" value="2"   />
+    <param    name="threshold_pct" value="3.5"   />
 
   </node>
 </launch>
