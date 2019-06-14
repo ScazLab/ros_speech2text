@@ -26,7 +26,50 @@
   <include file="$(find ros_speech2text)/launch/speech_recognize.launch">
     <arg name="input_stream" value="$(arg alias)/utterances" />
     <arg name="output_stream" value="$(arg alias)/utterances" />
-    <arg name="keywords" value="['chocolate', 'umbrella']" />
+    <arg name="keywords" value="['coffee pot',
+                                'screwdriver',
+                                'sharpie',
+                                'rubber band',
+                                'cd',
+                                'camera',
+                                'watch',
+                                'teddy bear',
+                                'newspaper',
+                                'whiskey',
+                                'chocolate',
+                                'whistle',
+                                'soda',
+                                'shoelace',
+                                'key',
+                                'keys',
+                                'light bulb',
+                                'tape',
+                                'umbrella',
+                                'honey',
+                                'floss',
+                                'garbage bag',
+                                'condom',
+                                'balloon',
+                                'spoon',
+                                'chapstick',
+                                'chocolate',
+                                'umbrella',
+
+                                'temperature',
+                                'weather',
+                                'season',
+                                'animal',
+                                'soil',
+                                'water supply',
+                                'plant',
+                                'geography',
+                                'people',
+
+                                'hey',
+                                'hi',
+                                'hello',
+                                'jibo'
+      ]"/>
   </include>
 
 </launch>
