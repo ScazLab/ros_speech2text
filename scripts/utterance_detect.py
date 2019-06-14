@@ -74,6 +74,7 @@ class Callback(UtteranceDetectorCallback):
         duration = self.length2time(self.buffer.get().size)
         chk = AudioChunk(self.buffer.get().tostring(), self.buffer.start_time, self.chunk_index)
         self.pub_chunk(chk,
+                       self.audio_config,
                        self.buffer.start_time,
                        duration,
                        self.utterance_index,
@@ -125,7 +126,7 @@ if __name__ == '__main__':
         size = min_output_chunk_size / config.sample_width
         size = int(size / config.num_channels) * config.num_channels
 
-    cb = Callback(config, size, dtype, output_stream)
+    cb = Callback(config, int(size), dtype, output_stream)
     utterance_detector = UtteranceDetector(config.sample_rate, config.num_channels, dtype,
                         sd_block_duration, leading_noise_duration, trailing_silence_duration,
                         threshold_pct, calibrate, cb)

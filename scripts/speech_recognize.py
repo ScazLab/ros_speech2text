@@ -29,7 +29,8 @@ def callback(msg, cb_args):
     if response.results:
         transcript = response.results[0].alternatives[0].transcript
         confidence = response.results[0].alternatives[0].confidence
-        pub_transcript.publish(transcript, msg.start_time, msg.duration, msg.index, confidence)
+        # pub_transcript.publish(transcript, msg.start_time, msg.duration, msg.index, confidence)
+        pub_transcript.publish(transcript, confidence, msg.start_time, msg.duration, msg.index)
         rospy.loginfo('From: ' + output_stream)
         rospy.loginfo('Transcript: ' + transcript)
     else:

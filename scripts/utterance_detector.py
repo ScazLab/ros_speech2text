@@ -11,7 +11,7 @@ class UtteranceDetector(object):
         self.callback = callback
 
         def time2length(time):
-            return time * float(sample_rate) * num_channels
+            return int(int(time * float(sample_rate)) * num_channels)
 
         self.block = BlockBuffer(time2length(block_duration / 1000.), dtype)
         self.noise = OtherBuffer(time2length(leading_noise_duration / 1000.), dtype)

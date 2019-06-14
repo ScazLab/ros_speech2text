@@ -1,5 +1,5 @@
 AudioChunk audio_chunk
 AudioConfigM audio_config
 time start_time
-float32 duration
+float64 duration
 int64 index

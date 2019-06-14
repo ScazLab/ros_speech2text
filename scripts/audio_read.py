@@ -31,7 +31,7 @@ config = {
 rospy.Service(output_stream + '/config', AudioConfig, lambda req: config)
 
 pub_chunk = rospy.Publisher(output_stream + '/chunk', AudioChunk)
-rospy.loginfo('Publishing audio chunks to {}'.format(output_stream + '/'))
+rospy.loginfo('Publishing audio chunks to /{}/chunk'.format(output_stream))
 
 rospy.loginfo('Waiting for subscriber to ' + output_stream + '/chunk')
 while pub_chunk.get_num_connections() == 0:
