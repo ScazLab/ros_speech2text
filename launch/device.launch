@@ -26,6 +26,7 @@
   <include file="$(find ros_speech2text)/launch/speech_recognize.launch">
     <arg name="input_stream" value="$(arg alias)/utterances" />
     <arg name="output_stream" value="$(arg alias)/utterances" />
+    <arg name="keywords" value="['chocolate', 'umbrella']" />
   </include>
 
 </launch>
