@@ -2,19 +2,31 @@
   <arg name="device_name" />
   <arg name="alias" default="hat" />
 
-  <include file="$(find ros_speech2text)/launch/mic_capture.launch">
-    <arg name="device_name" value="$(arg device_name)" />
-    <arg name="output_stream" value="$(arg alias)" />
-  </include>
-
-  <include file="$(find ros_speech2text)/launch/audio_save.launch">
-    <arg name="input_stream" value="$(arg alias)" />
-    <arg name="file_prefix" value="$(arg alias)" />
-    <arg name="output_directory" value="$(find ros_speech2text)/audio" />
-  </include>
+  <node
+    pkg="audio_io"
+    name="$(arg alias)"
+    type="capture.py"
+    output="screen"
+    >
+      <param    name="device_name" value="$(arg device_name)" />
+      <param    name="sample_rate" value="16000" />
+      <param    name="num_channels" value="1" />
+      <!-- sample width in bytes -->
+      <param    name="sample_width" value="2" />
+      <param    name="frames_per_chunk" value="1024" />
+  </node>
+  <node
+    pkg="audio_io"
+    name="$(anon save)"
+    type="save.py"
+    output="screen"
+    >
+      <param    name="input_topic" value="$(arg alias)/data" />
+      <param    name="dst" value="$(find ros_speech2text)/audio/$(arg alias).wav" />
+  </node>
 
   <include file="$(find ros_speech2text)/launch/utterance_detect.launch">
-    <arg name="input_stream" value="$(arg alias)" />
+    <arg name="input_stream" value="$(arg alias)/data" />
     <arg name="output_stream" value="$(arg alias)/utterances" />
   </include>
 

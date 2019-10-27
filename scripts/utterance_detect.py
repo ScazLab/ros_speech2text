@@ -12,19 +12,12 @@ from utilities import dtype_from_width
 from std_msgs.msg import String, Time
 from ros_speech2text.srv import AudioConfig
 from ros_speech2text.msg import AudioChunk, UtteranceChunk, Utterance, StartUtterance, EndUtterance
+from audio_io_msgs.msg import AudioData
 
 def subscriber_callback(msg, cb_args):
     (semaphore, dtype, utterance_detector) = cb_args
-    if not semaphore.enter(msg.index):
-        # You missed your turn!
-        # This message will be ignored.
-        return
-    try:
-        audio_chunk = np.frombuffer(str(msg.chunk), dtype=dtype)
-        utterance_detector.put_audio_chunk(audio_chunk, msg.time)
-    finally:
-        # Don't forget to free up the semaphore for the next message
-        semaphore.exit()
+    audio_chunk = np.frombuffer(str(msg.data), dtype=dtype)
+    utterance_detector.put_audio_chunk(audio_chunk, msg.header.stamp)
 
 class Callback(UtteranceDetectorCallback):
     def __init__(self, audio_config, min_output_chunk_size, dtype, output_stream):
@@ -90,17 +83,9 @@ if __name__ == '__main__':
     rospy.init_node('utterance_detect', anonymous = True)
     node_name = rospy.get_name()
 
-    input_stream = rospy.get_param(node_name + '/input_stream')
+    input_stream = '/' + rospy.get_param(node_name + '/input_stream')
     output_stream = rospy.get_param(node_name + '/output_stream')
     calibrate = rospy.get_param(node_name + '/calibrate', False)
-
-    # Get the information about the audio stream
-    rospy.loginfo('Waiting for connection to input stream service...')
-    rospy.wait_for_service(input_stream + '/config')
-    config = rospy.ServiceProxy(input_stream + '/config', AudioConfig)()
-    rospy.loginfo('Input stream configuration received.')
-
-    rospy.Service(output_stream + '/config', AudioConfig, lambda req: config)
 
     # Get utterance parameters
     sd_block_duration = rospy.get_param(
@@ -112,6 +97,11 @@ if __name__ == '__main__':
     threshold_pct = rospy.get_param(
         node_name + '/threshold_pct', 10)
 
+    config = AudioConfig()
+    config.sample_width = 2
+    config.num_channels = 1
+    config.endianness = 'little'
+    config.sample_rate = 16000
     # Find the appropriate numpy data type
     dtype = dtype_from_width(config.sample_width)
     if dtype is None:
@@ -133,6 +123,6 @@ if __name__ == '__main__':
 
     semaphore = Semaphore()
 
-    rospy.Subscriber(input_stream + '/chunk', AudioChunk, subscriber_callback,
+    rospy.Subscriber(input_stream, AudioData, subscriber_callback,
         callback_args=(semaphore, dtype, utterance_detector))
     rospy.spin()
