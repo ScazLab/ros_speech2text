@@ -22,7 +22,7 @@
     output="screen"
     >
       <param    name="input_topic" value="$(arg alias)/data" />
-      <param    name="dst" value="$(find ros_speech2text)/audio/$(arg alias).wav" />
+      <param    name="dst" command="bash -c 'printf &quot;$(find ros_speech2text)/audio/$(arg alias)_%(%d-%m-%Y_%Ih%Mm%S)T.wav&quot;'" />
   </node>
 
   <include file="$(find ros_speech2text)/launch/utterance_detect.launch">
